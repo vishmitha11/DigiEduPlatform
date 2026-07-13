@@ -1,0 +1,50 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run lint)",
+      "Bash(npm run lint:fix)",
+      "Bash(npm run typecheck)",
+      "Bash(npm test *)",
+      "Bash(npm run build)",
+      "Bash(npx tsc *)",
+      "Bash(npx prisma generate)",
+      "Bash(npx prisma migrate dev *)",
+      "Bash(npx prisma studio)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git blame *)",
+      "Bash(git show *)",
+      "Bash(git branch *)",
+      "Bash(git checkout -b *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr list *)",
+      "Bash(gh issue view *)",
+      "Agent(researcher)",
+      "Agent(architect)",
+      "Agent(implementer)",
+      "Agent(qa-reviewer)",
+      "Agent(pr-manager)"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(gh pr create *)",
+      "Bash(npx prisma migrate deploy)",
+      "Bash(npx prisma migrate reset *)",
+      "Bash(npx prisma db push *)"
+    ],
+    "deny": [
+      "Bash(git push origin main)",
+      "Bash(git push origin main --force)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git checkout main)",
+      "Bash(git reset --hard *)",
+      "Bash(rm -rf *)",
+      "Bash(npx prisma migrate reset)"
+    ]
+  },
+  "defaultMode": "default"
+}
