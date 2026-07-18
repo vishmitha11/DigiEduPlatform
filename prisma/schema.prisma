@@ -264,6 +264,38 @@ model Student {
   courseEnrollments CourseEnrollment[]
   resourceProgress  ResourceProgress[]
   profile           Profile                @relation(fields: [profileId], references: [id])
+  studentPublicProfile StudentPublicProfile?
+  researchPapers    ResearchPaper[]
+
+  @@schema("public")
+}
+
+model StudentPublicProfile {
+  id                String    @id @default(cuid())
+  studentId         String    @unique
+  tagline           String?
+  personalStatement String?
+  location          String?
+  shareToken        String    @unique @default(cuid())
+  isPublic          Boolean   @default(false)
+  visibility        Json      @default("{}")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  student           Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@schema("public")
+}
+
+model ResearchPaper {
+  id          String              @id @default(cuid())
+  studentId   String
+  title       String
+  status      ResearchPaperStatus @default(UNDER_REVIEW)
+  link        String?
+  publishedAt DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  student     Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@schema("public")
 }
@@ -838,6 +870,13 @@ enum CourseResourceType {
   IMAGE
   PRESENTATION
   EXTERNAL_LINK
+
+  @@schema("public")
+}
+
+enum ResearchPaperStatus {
+  PUBLISHED
+  UNDER_REVIEW
 
   @@schema("public")
 }
