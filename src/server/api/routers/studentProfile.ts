@@ -465,14 +465,19 @@ export const studentProfileRouter = createTRPCRouter({
     }),
 
   // ── MUTATION: update research paper ──────────────────────────────────────
+  // `link`/`publishedAt` use `.nullish()` so the client can distinguish
+  // "field not touched" (undefined — Prisma leaves it unchanged) from
+  // "field explicitly cleared" (null — Prisma sets it to null). A plain
+  // `.optional()` string can't express the clear-this-field case, which
+  // previously made clearing a link silently no-op.
   updateResearchPaper: protectedProcedure
     .input(
       z.object({
         id: z.string(),
         title: z.string().min(1).max(200).optional(),
         status: z.enum(["PUBLISHED", "UNDER_REVIEW"]).optional(),
-        link: z.string().url().optional(),
-        publishedAt: z.date().optional(),
+        link: z.string().url().nullish(),
+        publishedAt: z.date().nullish(),
       }),
     )
     .mutation(async ({ ctx, input }) => {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
+  AlertCircle,
   BadgeCheck,
   Building2,
   Copy,
@@ -69,19 +70,35 @@ const DEFAULT_VISIBILITY: VisibilityState = {
 
 export default function StudentProfilePage() {
   const utils = api.useUtils();
-  const { data: profile, isLoading } = api.studentProfile.getMyProfile.useQuery();
+  const {
+    data: profile,
+    isLoading,
+    isError: isProfileError,
+    refetch: refetchProfile,
+  } = api.studentProfile.getMyProfile.useQuery();
+
+  // ── Transient error banner ───────────────────────────────────────────
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const showError = (message: string) => {
+    setErrorMessage(message);
+    setTimeout(() => setErrorMessage(null), 4000);
+  };
 
   const upsertProfile = api.studentProfile.upsertProfile.useMutation({
     onSuccess: () => utils.studentProfile.getMyProfile.invalidate(),
+    onError: (err) => showError(err.message || "Failed to save changes. Please try again."),
   });
   const addResearchPaper = api.studentProfile.addResearchPaper.useMutation({
     onSuccess: () => utils.studentProfile.getMyProfile.invalidate(),
+    onError: (err) => showError(err.message || "Failed to add research paper. Please try again."),
   });
   const updateResearchPaper = api.studentProfile.updateResearchPaper.useMutation({
     onSuccess: () => utils.studentProfile.getMyProfile.invalidate(),
+    onError: (err) => showError(err.message || "Failed to update research paper. Please try again."),
   });
   const deleteResearchPaper = api.studentProfile.deleteResearchPaper.useMutation({
     onSuccess: () => utils.studentProfile.getMyProfile.invalidate(),
+    onError: (err) => showError(err.message || "Failed to delete research paper. Please try again."),
   });
 
   // ── Header edit state ────────────────────────────────────────────────
@@ -113,10 +130,22 @@ export default function StudentProfilePage() {
     setIsPublic(profile.isPublic);
   }, [profile]);
 
-  if (isLoading || !profile) {
+  if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      </div>
+    );
+  }
+
+  if (isProfileError || !profile) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-50 px-4 text-center">
+        <AlertCircle className="h-10 w-10 text-red-300" />
+        <p className="font-medium text-slate-600">Couldn&apos;t load your profile.</p>
+        <Button variant="secondary" size="sm" onClick={() => refetchProfile()}>
+          Try again
+        </Button>
       </div>
     );
   }
@@ -135,27 +164,35 @@ export default function StudentProfilePage() {
   };
 
   const toggleVisibility = (key: VisibilityKey) => {
+    const previous = visibility;
     const next = { ...visibility, [key]: !visibility[key] };
     setVisibility(next);
-    upsertProfile.mutate({
-      tagline: profile.tagline ?? undefined,
-      personalStatement: profile.personalStatement ?? undefined,
-      location: profile.location ?? undefined,
-      isPublic,
-      visibility: next,
-    });
+    upsertProfile.mutate(
+      {
+        tagline: profile.tagline ?? undefined,
+        personalStatement: profile.personalStatement ?? undefined,
+        location: profile.location ?? undefined,
+        isPublic,
+        visibility: next,
+      },
+      { onError: () => setVisibility(previous) },
+    );
   };
 
   const togglePublic = () => {
+    const previous = isPublic;
     const next = !isPublic;
     setIsPublic(next);
-    upsertProfile.mutate({
-      tagline: profile.tagline ?? undefined,
-      personalStatement: profile.personalStatement ?? undefined,
-      location: profile.location ?? undefined,
-      isPublic: next,
-      visibility,
-    });
+    upsertProfile.mutate(
+      {
+        tagline: profile.tagline ?? undefined,
+        personalStatement: profile.personalStatement ?? undefined,
+        location: profile.location ?? undefined,
+        isPublic: next,
+        visibility,
+      },
+      { onError: () => setIsPublic(previous) },
+    );
   };
 
   const resetPaperForm = () => {
@@ -176,13 +213,16 @@ export default function StudentProfilePage() {
 
   const submitPaperForm = () => {
     if (!paperTitle.trim()) return;
+    const trimmedLink = paperLink.trim();
     if (editingPaperId) {
+      // `null` explicitly clears an existing link server-side; `undefined`
+      // would leave the previous value untouched (see studentProfile.ts).
       updateResearchPaper.mutate(
         {
           id: editingPaperId,
           title: paperTitle,
           status: paperStatus,
-          link: paperLink || undefined,
+          link: trimmedLink === "" ? null : trimmedLink,
         },
         { onSuccess: resetPaperForm },
       );
@@ -191,7 +231,7 @@ export default function StudentProfilePage() {
         {
           title: paperTitle,
           status: paperStatus,
-          link: paperLink || undefined,
+          link: trimmedLink === "" ? undefined : trimmedLink,
         },
         { onSuccess: resetPaperForm },
       );
@@ -203,9 +243,13 @@ export default function StudentProfilePage() {
 
   const copyShareLink = async () => {
     if (!shareUrl) return;
-    await navigator.clipboard.writeText(shareUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      showError("Couldn't copy the link. Please copy it manually.");
+    }
   };
 
   return (
@@ -222,6 +266,13 @@ export default function StudentProfilePage() {
             {copied ? "Copied!" : <><Copy className="h-4 w-4" /> Copy Profile Link</>}
           </Button>
         </div>
+
+        {errorMessage && (
+          <div className="mb-6 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            {errorMessage}
+          </div>
+        )}
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main column */}
