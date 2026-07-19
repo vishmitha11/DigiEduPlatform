@@ -14,6 +14,7 @@ import {
   Briefcase,
   Layers,
   Sparkles,
+  UserCircle,
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
@@ -35,6 +36,7 @@ const navSections = [
       { name: "Programs",    path: "/dashboard/student/programs",   icon: GraduationCap },
       { name: "Courses",     path: "/dashboard/student/courses",    icon: Layers },
       { name: "Library",     path: "/dashboard/student/library",    icon: Library },
+      { name: "My Profile",  path: "/dashboard/student/profile",    icon: UserCircle },
     ],
   },
   {

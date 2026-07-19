@@ -269,7 +269,7 @@ export default function StudentProfileSetup() {
   const [error, setError] = useState("");
 
   const upsertRecommendationProfile =
-    api.studentProfile.upsertProfile.useMutation();
+    api.studentProfile.upsertRecommendationProfile.useMutation();
 
   // Load existing data on mount to prepopulate form
   const { data: existingProfile, isLoading: profileLoading } =
