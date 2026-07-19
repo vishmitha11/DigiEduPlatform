@@ -13,6 +13,7 @@ import {
   Library,
   Briefcase,
   LayoutDashboard,
+  UserCircle,
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
@@ -30,6 +31,7 @@ const studentNavigation = [
   { name: "Courses",     path: "/dashboard/student/courses",   icon: GraduationCap },
   { name: "Library",     path: "/dashboard/student/library",   icon: Library },
   { name: "Careers",     path: "/dashboard/student/careers",   icon: Briefcase },
+  { name: "My Profile",  path: "/dashboard/student/profile",   icon: UserCircle },
   { name: "Dashboard",   path: "/dashboard",                   icon: LayoutDashboard },
 ];
 
