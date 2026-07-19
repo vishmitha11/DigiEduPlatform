@@ -7,6 +7,8 @@ import {
   Loader2, X, ExternalLink,
 } from "lucide-react";
 import { createClient } from "~/lib/supabase/client";
+import Badge from "~/app/components/ui/Badge";
+import EmptyState from "~/app/components/ui/EmptyState";
 
 interface Resource {
   id: string;
@@ -81,7 +83,7 @@ export default function LibraryPage() {
       <div className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">Library</h1>
+            <h1 className="font-display text-3xl font-bold text-slate-900 sm:text-4xl">Library</h1>
             <p className="mt-3 text-lg text-slate-500">
               Ebooks, journals, research papers and video lectures
             </p>
@@ -94,7 +96,7 @@ export default function LibraryPage() {
                 placeholder="Search by title, author or subject…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-12 pr-4 text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-12 pr-4 text-sm shadow-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-subtle"
               />
               {search && (
                 <button onClick={() => setSearch("")} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -143,15 +145,13 @@ export default function LibraryPage() {
         {/* Resources list */}
         {loading ? (
           <div className="flex justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+            <Loader2 className="h-8 w-8 animate-spin text-brand" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-white py-20 text-center">
-            <BookOpen className="mx-auto mb-4 h-12 w-12 text-slate-200" />
-            <p className="font-medium text-slate-600">
-              {search || typeFilter !== "ALL" ? "No resources match your search" : "No resources yet"}
-            </p>
-          </div>
+          <EmptyState
+            icon={BookOpen}
+            title={search || typeFilter !== "ALL" ? "No resources match your search" : "No resources yet"}
+          />
         ) : (
           <div className="space-y-3">
             {filtered.map((r) => {
@@ -159,7 +159,7 @@ export default function LibraryPage() {
               const access = ACCESS_META[r.accessLevel] ?? ACCESS_META.PUBLIC!;
               return (
                 <div key={r.id}
-                  className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition hover:border-blue-200 hover:shadow-md"
+                  className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition hover:border-brand/30 hover:shadow-md"
                 >
                   <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border ${meta.border} ${meta.bg}`}>
                     <span className={meta.text}>{meta.icon}</span>
@@ -174,11 +174,7 @@ export default function LibraryPage() {
                       <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${access.className}`}>
                         {access.icon}{access.label}
                       </span>
-                      {r.isFree ? (
-                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">Free</span>
-                      ) : (
-                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">Premium</span>
-                      )}
+                      <Badge tone={r.isFree ? "success" : "warning"}>{r.isFree ? "Free" : "Premium"}</Badge>
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-x-4 text-xs text-slate-400">
                       {r.author && <span>by {r.author}</span>}
@@ -201,7 +197,7 @@ export default function LibraryPage() {
                       href={r.fileUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex-shrink-0 flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
+                      className="flex-shrink-0 flex items-center gap-1.5 rounded-lg border border-brand/20 bg-brand-subtle px-3 py-2 text-xs font-semibold text-brand-dim transition hover:bg-brand-glow"
                     >
                       <ExternalLink className="h-3.5 w-3.5" /> Open
                     </a>
