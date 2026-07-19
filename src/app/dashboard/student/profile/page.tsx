@@ -84,7 +84,7 @@ export default function StudentProfilePage() {
     setTimeout(() => setErrorMessage(null), 4000);
   };
 
-  const upsertProfile = api.studentProfile.upsertProfile.useMutation({
+  const upsertProfile = api.studentProfile.upsertPublicProfile.useMutation({
     onSuccess: () => utils.studentProfile.getMyProfile.invalidate(),
     onError: (err) => showError(err.message || "Failed to save changes. Please try again."),
   });

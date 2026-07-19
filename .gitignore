@@ -47,3 +47,6 @@ yarn-error.log*
 
 # src/app/\(public\)/maintenance/
 # src/app/\(public\)/maintenance/page.tsx
+# Local-only files
+paths.txt
+.claude/settings.local.json

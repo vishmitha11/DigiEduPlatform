@@ -357,14 +357,19 @@ export async function createInstitutionAccount(institutionId: string) {
 
   // Generate recovery link for admin to share manually
   const { data: linkData, error: resetError } = await supabase.auth.admin.generateLink({
-    type: "recovery",
+    type: "magiclink",
     email: institution.email,
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?type=invite`,
     },
   });
-
-  if (resetError) throw new Error(resetError.message);
+  
+  if (resetError) {
+    await supabase.from("InstitutionAccount").delete().eq("institutionId", institutionId);
+    await supabase.from("Profile").delete().eq("id", userId);
+    await supabase.auth.admin.deleteUser(userId);
+    throw new Error(resetError.message);
+  }
 
   revalidatePath("/admin");
   return { link: linkData.properties?.action_link };
