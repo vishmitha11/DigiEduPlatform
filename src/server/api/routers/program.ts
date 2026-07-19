@@ -39,6 +39,18 @@ function generateSlug(title: string): string {
   return title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
+// foreignPrice is entered directly in USD (the international-student rate,
+// which is what the recommendation engine's budget matching compares
+// against) — see src/lib/recommendation/hardFilters.ts. Keeping priceUsd
+// in sync here means new/edited programs stay matchable without a
+// separate backfill step.
+function priceUsdFields(foreignPrice: number | null | undefined) {
+  return {
+    priceUsd: foreignPrice ?? null,
+    priceUsdUpdatedAt: foreignPrice != null ? new Date() : null,
+  };
+}
+
 export const programRouter = createTRPCRouter({
 
   listPublic: publicProcedure
@@ -167,7 +179,15 @@ export const programRouter = createTRPCRouter({
       const approvalStatus = isManager || complete ? "APPROVED" : "PENDING";
 
       const program = await db.program.create({
-        data: { ...input, slug, institutionId: lecturer.institutionId, createdById: lecturer.id, approvalStatus, isPublished: false },
+        data: {
+          ...input,
+          slug,
+          institutionId: lecturer.institutionId,
+          createdById: lecturer.id,
+          approvalStatus,
+          isPublished: false,
+          ...priceUsdFields(input.foreignPrice),
+        },
       });
 
       if (approvalStatus === "PENDING") {
@@ -212,7 +232,10 @@ export const programRouter = createTRPCRouter({
         ? program.approvalStatus
         : isProgramComplete(input.data) ? "PENDING" : "DRAFT";
 
-      return db.program.update({ where: { id: input.id }, data: { ...input.data, approvalStatus: newApprovalStatus } });
+      return db.program.update({
+        where: { id: input.id },
+        data: { ...input.data, approvalStatus: newApprovalStatus, ...priceUsdFields(input.data.foreignPrice) },
+      });
     }),
 
   // FIX: added a guard that checks all courses in the program are published

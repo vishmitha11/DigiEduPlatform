@@ -1,0 +1,4 @@
+AFTER resetting the DB:
+
+npx prisma migrate reset
+npx prisma generate

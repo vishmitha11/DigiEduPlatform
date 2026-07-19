@@ -126,6 +126,21 @@ model Program {
   reviewedAt           DateTime?
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
+  
+  // Recommendation engine fields
+  interestTags         String[]
+  careerOutcomeTags    String[]
+  hostCountry          String?
+  acceptsInternational Boolean               @default(true)
+  restrictedRegions    String[]
+  priceUsd             Float?
+  priceCurrency        String?
+  priceUsdUpdatedAt    DateTime?
+  durationType         String?
+
+  // Relation to embedding meta
+  embeddingMeta        ProgramEmbeddingMeta?
+
   announcements        Announcement[]
   courses              Course[]
   credentials          Credential[]
@@ -264,6 +279,7 @@ model Student {
   courseEnrollments CourseEnrollment[]
   resourceProgress  ResourceProgress[]
   profile           Profile                @relation(fields: [profileId], references: [id])
+  recommendationProfile StudentProfile?
 
   @@schema("public")
 }
@@ -524,6 +540,60 @@ model Announcement {
   program        Program?     @relation(fields: [programId], references: [id])
   publisher      Profile?     @relation(fields: [publishedBy], references: [id])
 
+  @@schema("public")
+}
+
+model StudentProfile {
+  id                 String    @id @default(cuid())
+  studentId          String    @unique
+  interests          String[]
+  careerGoals        String[]
+  skillLevel         String?
+  preferredMode      String?
+  budgetTierId       String?
+  countryCode        String?
+  region             String?
+  quizCompletedAt    DateTime?
+  profileText        String?   @db.Text
+  embeddingUpdatedAt DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  student            Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@schema("public")
+}
+
+model ProgramEmbeddingMeta {
+  id                 String    @id @default(cuid())
+  programId          String    @unique
+  interestTags       String[]
+  careerOutcomeTags  String[]
+  embeddingText      String    @db.Text
+  embeddingUpdatedAt DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  program            Program   @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@index([programId])
+  @@schema("public")
+}
+
+model RecommendationInteraction {
+  id           String   @id @default(cuid())
+  studentId    String
+  programId    String
+  action       String
+  rankPosition Int?
+  score        Float?
+  sessionId    String?
+  createdAt    DateTime @default(now())
+
+  @@index([studentId])
+  @@index([programId])
+  @@index([action])
   @@schema("public")
 }
 
