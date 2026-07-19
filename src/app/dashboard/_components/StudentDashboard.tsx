@@ -52,7 +52,7 @@ function ProgressBar({ percent }: { percent: number }) {
   return (
     <div className="h-1.5 w-full rounded-full bg-slate-100">
       <div
-        className={`h-1.5 rounded-full transition-all ${percent === 100 ? "bg-emerald-500" : "bg-blue-500"}`}
+        className={`h-1.5 rounded-full transition-all ${percent === 100 ? "bg-emerald-500" : "bg-brand"}`}
         style={{ width: `${percent}%` }}
       />
     </div>
@@ -222,7 +222,7 @@ export default function StudentDashboard() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
-          <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-blue-600" />
+          <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-brand" />
           <p className="text-gray-600">Loading dashboard...</p>
         </div>
       </div>
@@ -246,7 +246,7 @@ export default function StudentDashboard() {
             </h1>
             <p className="font-medium text-gray-600">
               Welcome back,{" "}
-              <span className="text-blue-600">{fullName ?? "Student"}</span>
+              <span className="text-brand-dim">{fullName ?? "Student"}</span>
             </p>
           </div>
           <div className="flex gap-2">
@@ -258,7 +258,7 @@ export default function StudentDashboard() {
             </button>
             <button
               onClick={() => router.push("/dashboard/student/courses")}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+              className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dim"
             >
               Browse Courses
             </button>
@@ -268,8 +268,8 @@ export default function StudentDashboard() {
         {/* Stats */}
         <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard
-            icon={<GraduationCap className="h-5 w-5 text-violet-600" />}
-            bg="bg-violet-50"
+            icon={<GraduationCap className="h-5 w-5 text-brand" />}
+            bg="bg-brand-subtle"
             count={programEnrollments.length}
             label="Programs Enrolled"
             onClick={() => {
@@ -278,8 +278,8 @@ export default function StudentDashboard() {
             }}
           />
           <StatCard
-            icon={<BookOpen className="h-5 w-5 text-blue-600" />}
-            bg="bg-blue-50"
+            icon={<BookOpen className="h-5 w-5 text-brand" />}
+            bg="bg-brand-subtle"
             count={courseEnrollments.length}
             label="Courses Enrolled"
             onClick={() => {
@@ -294,8 +294,8 @@ export default function StudentDashboard() {
             label="Certificates Earned"
           />
           <StatCard
-            icon={<Briefcase className="h-5 w-5 text-emerald-600" />}
-            bg="bg-emerald-50"
+            icon={<Briefcase className="h-5 w-5 text-blue-600" />}
+            bg="bg-blue-50"
             count={jobApplications.length}
             label="Job Applications"
           />
@@ -334,7 +334,7 @@ export default function StudentDashboard() {
                         : "/dashboard/student/programs",
                     )
                   }
-                  className="flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-600 transition hover:bg-blue-100"
+                  className="flex items-center gap-1.5 rounded-lg bg-brand-subtle px-3 py-1.5 text-xs font-semibold text-brand-dim transition hover:bg-brand-glow"
                 >
                   View All <ArrowRight className="h-3.5 w-3.5" />
                 </button>
@@ -345,7 +345,7 @@ export default function StudentDashboard() {
             {learningTab === "COURSES" &&
               (coursesLoading ? (
                 <div className="flex justify-center py-12">
-                  <Loader2 className="h-6 w-6 animate-spin text-blue-400" />
+                  <Loader2 className="h-6 w-6 animate-spin text-brand" />
                 </div>
               ) : courseEnrollments.length === 0 ? (
                 <EmptyTabState
@@ -387,7 +387,7 @@ export default function StudentDashboard() {
                               <ProgressBar percent={e.progressPercent} />
                             </div>
                             <span
-                              className={`flex-shrink-0 text-xs font-bold ${e.progressPercent === 100 ? "text-emerald-600" : "text-blue-600"}`}
+                              className={`flex-shrink-0 text-xs font-bold ${e.progressPercent === 100 ? "text-emerald-600" : "text-brand"}`}
                             >
                               {e.progressPercent}%
                             </span>
@@ -425,7 +425,7 @@ export default function StudentDashboard() {
                     <div className="px-6 py-3 text-center">
                       <button
                         onClick={() => router.push("/dashboard/student")}
-                        className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+                        className="text-xs font-semibold text-brand hover:text-brand-dim"
                       >
                         + {courseEnrollments.length - 4} more courses →
                       </button>
@@ -460,8 +460,8 @@ export default function StudentDashboard() {
                         key={e.id}
                         className="flex items-center gap-4 px-6 py-4 transition hover:bg-slate-50"
                       >
-                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-violet-50">
-                          <GraduationCap className="h-5 w-5 text-violet-600" />
+                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-brand-subtle">
+                          <GraduationCap className="h-5 w-5 text-brand" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="truncate font-semibold text-slate-900">
@@ -495,7 +495,7 @@ export default function StudentDashboard() {
                               <ProgressBar percent={progressPercent} />
                             </div>
                             <span
-                              className={`flex-shrink-0 text-xs font-bold ${progressPercent === 100 ? "text-emerald-600" : "text-violet-600"}`}
+                              className={`flex-shrink-0 text-xs font-bold ${progressPercent === 100 ? "text-emerald-600" : "text-brand"}`}
                             >
                               {progressPercent}%
                             </span>
@@ -511,7 +511,7 @@ export default function StudentDashboard() {
                               e.status === "COMPLETED"
                                 ? "bg-emerald-100 text-emerald-700"
                                 : e.status === "ACTIVE"
-                                  ? "bg-violet-100 text-violet-700"
+                                  ? "bg-blue-100 text-blue-700"
                                   : "bg-amber-100 text-amber-700"
                             }`}
                           >
@@ -529,7 +529,7 @@ export default function StudentDashboard() {
                             progressPercent === 100
                               ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                               : progressPercent > 0
-                                ? "bg-violet-600 text-white hover:bg-violet-700"
+                                ? "bg-brand text-white hover:bg-brand-dim"
                                 : "bg-slate-900 text-white hover:bg-slate-700"
                           }`}
                         >
@@ -548,7 +548,7 @@ export default function StudentDashboard() {
                         onClick={() =>
                           router.push("/dashboard/student/programs")
                         }
-                        className="text-xs font-semibold text-violet-600 hover:text-violet-700"
+                        className="text-xs font-semibold text-brand hover:text-brand-dim"
                       >
                         + {programEnrollments.length - 4} more programs →
                       </button>
@@ -567,7 +567,7 @@ export default function StudentDashboard() {
             </h2>
             <button
               onClick={() => router.push("/dashboard/student/careers")}
-              className="flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-600 transition hover:bg-blue-100"
+              className="flex items-center gap-1.5 rounded-lg bg-brand-subtle px-3 py-1.5 text-xs font-semibold text-brand-dim transition hover:bg-brand-glow"
             >
               Browse Jobs <ArrowRight className="h-3.5 w-3.5" />
             </button>
@@ -612,9 +612,9 @@ export default function StudentDashboard() {
         </div>
 
         {/* Career CTA */}
-        <div className="flex flex-col items-center justify-between gap-6 rounded-2xl border border-blue-100 bg-white p-8 shadow-sm md:flex-row">
+        <div className="flex flex-col items-center justify-between gap-6 rounded-2xl border border-slate-200 bg-white p-8 shadow-sm md:flex-row">
           <div className="flex items-center gap-6">
-            <div className="rounded-2xl bg-blue-600 p-4">
+            <div className="rounded-2xl bg-brand p-4">
               <TrendingUp className="h-8 w-8 text-white" />
             </div>
             <div>
@@ -683,7 +683,7 @@ function StatCard({
   return (
     <div
       onClick={onClick}
-      className={`rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition ${onClick ? "cursor-pointer hover:border-blue-200 hover:shadow-md" : ""}`}
+      className={`rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition ${onClick ? "cursor-pointer hover:border-brand/30 hover:shadow-md" : ""}`}
     >
       <div
         className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl ${bg}`}
@@ -717,7 +717,7 @@ function EmptyTabState({
       {action && (
         <button
           onClick={action.onClick}
-          className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          className="mt-4 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dim"
         >
           {action.label}
         </button>
