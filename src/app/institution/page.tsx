@@ -49,14 +49,18 @@ export default async function InstitutionPage() {
     .eq("profileId", user.id)
     .single();
 
-  if (!account?.institution) redirect("/login");
+  // No InstitutionAccount row yet — redirecting to /login here would loop:
+  // middleware forces any logged-in INSTITUTION-role user away from public
+  // paths straight back to /institution. This page is itself under
+  // /institution/*, so middleware lets it through without a bounce.
+  if (!account?.institution) redirect("/institution/setup-incomplete");
 
   // Extract institution BEFORE using it
   const institution = Array.isArray(account.institution)
     ? account.institution[0]
     : account.institution;
 
-  if (!institution) redirect("/login");
+  if (!institution) redirect("/institution/setup-incomplete");
 
   // NOW fetch pending and rejected lecturers using institution.id
   const pendingLecturers = (
