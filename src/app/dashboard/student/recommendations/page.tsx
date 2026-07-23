@@ -5,6 +5,9 @@ import {
   Sparkles, Clock, Globe, Building2, Layers, Loader2, ArrowRight,
 } from "lucide-react";
 import { api } from "~/trpc/react";
+import Button from "~/app/components/ui/Button";
+import Badge from "~/app/components/ui/Badge";
+import EmptyState from "~/app/components/ui/EmptyState";
 
 const LEVEL_COLORS: Record<string, string> = {
   ENTRY:          "bg-green-100 text-green-700",
@@ -47,11 +50,11 @@ export default function RecommendationsPage() {
       <div className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-              <Sparkles className="h-3.5 w-3.5" />
+            <Badge tone="info" className="mb-4">
+              <Sparkles className="mr-1.5 h-3.5 w-3.5" />
               Personalised for you
-            </div>
-            <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">
+            </Badge>
+            <h1 className="font-display text-3xl font-bold text-slate-900 sm:text-4xl">
               Recommended for You
             </h1>
             <p className="mt-3 text-lg text-slate-500">
@@ -64,39 +67,31 @@ export default function RecommendationsPage() {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {isLoading ? (
           <div className="flex justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+            <Loader2 className="h-8 w-8 animate-spin text-brand" />
           </div>
         ) : data?.profileIncomplete ? (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-white py-20 text-center">
-            <Sparkles className="mx-auto mb-4 h-12 w-12 text-slate-200" />
-            <p className="font-medium text-slate-600">
-              Complete your profile to get personalised recommendations
-            </p>
-            <p className="mt-1 text-sm text-slate-400">
-              A couple of quick questions about your interests and goals is all it takes.
-            </p>
-            <button
-              onClick={() => router.push("/profile-setup")}
-              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
-            >
-              Complete Profile
-              <ArrowRight className="h-4 w-4" />
-            </button>
-          </div>
+          <EmptyState
+            icon={Sparkles}
+            title="Complete your profile to get personalised recommendations"
+            description="A couple of quick questions about your interests and goals is all it takes."
+            action={
+              <Button onClick={() => router.push("/profile-setup")}>
+                Complete Profile
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            }
+          />
         ) : !data?.recommendations.length ? (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-white py-20 text-center">
-            <Sparkles className="mx-auto mb-4 h-12 w-12 text-slate-200" />
-            <p className="font-medium text-slate-600">No matches yet</p>
-            <p className="mt-1 text-sm text-slate-400">
-              Try widening your budget or delivery mode preferences in your profile.
-            </p>
-            <button
-              onClick={() => router.push("/profile-setup")}
-              className="mt-6 inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              Edit Preferences
-            </button>
-          </div>
+          <EmptyState
+            icon={Sparkles}
+            title="No matches yet"
+            description="Try widening your budget or delivery mode preferences in your profile."
+            action={
+              <Button variant="ghost" onClick={() => router.push("/profile-setup")}>
+                Edit Preferences
+              </Button>
+            }
+          />
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-2">
             {data.recommendations.map((program, index) => {
@@ -106,7 +101,7 @@ export default function RecommendationsPage() {
                 <div
                   key={program.id}
                   onClick={() => goToProgram(program.id, rankPosition, program.matchScore)}
-                  className="flex cursor-pointer flex-col rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-blue-200 hover:shadow-md"
+                  className="flex cursor-pointer flex-col rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-brand/30 hover:shadow-md"
                 >
                   <div className="p-5 pb-3">
                     <div className="mb-3 flex items-start justify-between gap-2">
@@ -170,17 +165,14 @@ export default function RecommendationsPage() {
                           )}
                         </div>
                       ) : (
-                        <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-bold text-green-700">
-                          Free
-                        </span>
+                        <Badge tone="success">Free</Badge>
                       )}
                     </div>
-                    <button
+                    <Button
                       onClick={(e) => { e.stopPropagation(); goToProgram(program.id, rankPosition, program.matchScore); }}
-                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
                     >
                       View Details
-                    </button>
+                    </Button>
                   </div>
                 </div>
               );

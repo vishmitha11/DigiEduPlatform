@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { createClient } from "~/lib/supabase/client";
 import { api } from "~/trpc/react";
+import Button from "~/app/components/ui/Button";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -144,7 +145,7 @@ export default function StudentCourseDetailPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-brand" />
       </div>
     );
   }
@@ -155,7 +156,7 @@ export default function StudentCourseDetailPage() {
         <div className="text-center">
           <p className="font-medium text-slate-600">Course not found.</p>
           <button onClick={() => router.push("/dashboard/student/courses")}
-            className="mt-3 text-sm text-blue-600 hover:underline">
+            className="mt-3 text-sm text-brand hover:underline">
             Back to Courses
           </button>
         </div>
@@ -195,11 +196,11 @@ export default function StudentCourseDetailPage() {
 
             {/* Left — course info */}
             <div className="lg:col-span-2">
-              <span className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+              <span className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-brand-subtle px-3 py-1 text-sm font-semibold text-brand-dim">
                 <BookOpen className="h-3.5 w-3.5" /> Standalone Course
               </span>
 
-              <h1 className="text-3xl font-bold leading-tight text-slate-900">{course.title}</h1>
+              <h1 className="font-display text-3xl font-bold leading-tight text-slate-900">{course.title}</h1>
 
               {course.code && (
                 <span className="mt-2 inline-block rounded-lg bg-slate-100 px-2.5 py-1 font-mono text-xs text-slate-500">
@@ -241,7 +242,7 @@ export default function StudentCourseDetailPage() {
                 <div className="mb-5 border-b border-slate-100 pb-5">
                   {isFree ? (
                     <div>
-                      <span className="text-3xl font-black text-emerald-600">Free</span>
+                      <span className="text-3xl font-black text-brand">Free</span>
                       <p className="mt-0.5 text-sm text-slate-400">No payment required</p>
                     </div>
                   ) : (
@@ -265,28 +266,25 @@ export default function StudentCourseDetailPage() {
                   </div>
                 ) : isEnrolled ? (
                   <div className="space-y-3">
-                    <div className="flex items-center gap-2.5 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+                    <div className="flex items-center gap-2.5 rounded-xl bg-brand-subtle px-4 py-3 text-sm font-semibold text-brand-dim">
                       <CheckCircle2 className="h-4 w-4 flex-shrink-0" /> You are enrolled
                     </div>
-                    <button
-                      onClick={() => router.push(`/dashboard/student`)}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 text-sm font-bold text-white transition hover:bg-blue-700"
-                    >
+                    <Button className="w-full rounded-xl py-3.5" onClick={() => router.push(`/dashboard/student`)}>
                       Go to My Learning
-                    </button>
+                    </Button>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <button
+                    <Button
+                      className="w-full rounded-xl py-3.5"
                       onClick={handleEnroll}
                       disabled={enrolling}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:opacity-60"
                     >
                       {enrolling
                         ? <><Loader2 className="h-4 w-4 animate-spin" /> Enrolling…</>
                         : isFree ? "Enroll for Free" : "Enroll Now"
                       }
-                    </button>
+                    </Button>
                     {enrollError && (
                       <p className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
                         <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />{enrollError}
@@ -349,7 +347,7 @@ export default function StudentCourseDetailPage() {
                         isExpanded ? "bg-white" : "hover:bg-slate-50"
                       }`}
                     >
-                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-xs font-bold text-emerald-700">
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-brand-subtle text-xs font-bold text-brand-dim">
                         {idx + 1}
                       </div>
 
@@ -446,7 +444,7 @@ export default function StudentCourseDetailPage() {
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <h3 className="mb-4 font-bold text-slate-900">Your Instructor</h3>
                 <div className="flex items-center gap-3">
-                  <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xl font-black text-emerald-700">
+                  <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-brand-subtle text-xl font-black text-brand-dim">
                     {instructorName.charAt(0).toUpperCase()}
                   </div>
                   <div>

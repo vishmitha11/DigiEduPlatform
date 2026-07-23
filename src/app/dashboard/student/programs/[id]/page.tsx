@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { createClient } from "~/lib/supabase/client";
 import { api } from "~/trpc/react";
+import Button from "~/app/components/ui/Button";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -166,7 +167,7 @@ export default function StudentProgramDetailPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-brand" />
       </div>
     );
   }
@@ -177,7 +178,7 @@ export default function StudentProgramDetailPage() {
         <div className="text-center">
           <p className="font-medium text-slate-600">Program not found.</p>
           <button onClick={() => router.push("/dashboard/student/programs")}
-            className="mt-3 text-sm text-blue-600 hover:underline">
+            className="mt-3 text-sm text-brand hover:underline">
             Back to Programs
           </button>
         </div>
@@ -214,7 +215,7 @@ export default function StudentProgramDetailPage() {
             <div className="lg:col-span-2">
               {/* Badges */}
               <div className="mb-4 flex flex-wrap gap-2">
-                <span className="flex items-center gap-1.5 rounded-full bg-violet-50 px-3 py-1 text-sm font-semibold text-violet-700">
+                <span className="flex items-center gap-1.5 rounded-full bg-brand-subtle px-3 py-1 text-sm font-semibold text-brand-dim">
                   <Award className="h-3.5 w-3.5" />
                   {TYPE_LABELS[program.type] ?? program.type}
                 </span>
@@ -225,13 +226,13 @@ export default function StudentProgramDetailPage() {
                   {program.field.replace(/_/g, " ")}
                 </span>
                 {program.scholarshipAvailable && (
-                  <span className="rounded-full bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-700">
-                    🎓 Scholarship Available
+                  <span className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-700">
+                    <GraduationCap className="h-3.5 w-3.5" /> Scholarship Available
                   </span>
                 )}
               </div>
 
-              <h1 className="text-3xl font-bold leading-tight text-slate-900">{program.title}</h1>
+              <h1 className="font-display text-3xl font-bold leading-tight text-slate-900">{program.title}</h1>
 
               {/* Institution line */}
               {program.institution && (
@@ -288,7 +289,7 @@ export default function StudentProgramDetailPage() {
                 <div className="mb-5 border-b border-slate-100 pb-5">
                   {isFree ? (
                     <div>
-                      <span className="text-3xl font-black text-emerald-600">Free</span>
+                      <span className="text-3xl font-black text-brand">Free</span>
                       <p className="mt-0.5 text-sm text-slate-400">No payment required</p>
                     </div>
                   ) : (
@@ -312,7 +313,7 @@ export default function StudentProgramDetailPage() {
                   </div>
                 ) : isEnrolled ? (
                   <div className="space-y-3">
-                    <div className="flex items-center gap-2.5 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+                    <div className="flex items-center gap-2.5 rounded-xl bg-brand-subtle px-4 py-3 text-sm font-semibold text-brand-dim">
                       <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
                       You are enrolled in this program
                     </div>
@@ -325,31 +326,28 @@ export default function StudentProgramDetailPage() {
                         </p>
                         <div className="mt-2 h-1.5 w-full rounded-full bg-slate-200">
                           <div
-                            className="h-1.5 rounded-full bg-violet-500 transition-all"
+                            className="h-1.5 rounded-full bg-brand transition-all"
                             style={{ width: `${program.courses.length > 0 ? Math.round((completedCount / program.courses.length) * 100) : 0}%` }}
                           />
                         </div>
                       </div>
                     )}
-                    <button
-                      onClick={() => router.push("/dashboard/student")}
-                      className="w-full rounded-xl bg-blue-600 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
-                    >
+                    <Button className="w-full rounded-xl py-3" onClick={() => router.push("/dashboard/student")}>
                       Go to My Learning
-                    </button>
+                    </Button>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <button
+                    <Button
+                      className="w-full rounded-xl py-3.5"
                       onClick={handleEnroll}
                       disabled={enrolling}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-3.5 text-sm font-bold text-white transition hover:bg-violet-700 disabled:opacity-60"
                     >
                       {enrolling
                         ? <><Loader2 className="h-4 w-4 animate-spin" /> Enrolling…</>
                         : isFree ? "Enroll for Free" : "Enroll Now"
                       }
-                    </button>
+                    </Button>
                     {enrollError && (
                       <p className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
                         <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />{enrollError}
@@ -396,7 +394,7 @@ export default function StudentProgramDetailPage() {
                     {mandatoryCount} core · {electiveCount} elective
                   </p>
                 </div>
-                <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
+                <span className="rounded-full bg-brand-subtle px-3 py-1 text-xs font-semibold text-brand-dim">
                   {program.courses.length} total
                 </span>
               </div>
@@ -470,7 +468,7 @@ export default function StudentProgramDetailPage() {
                               className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold transition ${
                                 moduleStatus === "COMPLETED"
                                   ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                                  : "bg-blue-600 text-white hover:bg-blue-700"
+                                  : "bg-brand text-white hover:bg-brand-dim"
                               }`}
                             >
                               <PlayCircle className="h-3.5 w-3.5" />

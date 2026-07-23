@@ -7,6 +7,9 @@ import {
   Loader2, X, Users, FileText, Filter, BookOpen,
 } from "lucide-react";
 import { createClient } from "~/lib/supabase/client";
+import Button from "~/app/components/ui/Button";
+import Badge from "~/app/components/ui/Badge";
+import EmptyState from "~/app/components/ui/EmptyState";
 
 interface Course {
   id: string;
@@ -86,7 +89,7 @@ export default function CoursesPage() {
       <div className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">
+            <h1 className="font-display text-3xl font-bold text-slate-900 sm:text-4xl">
               Browse Courses
             </h1>
             <p className="mt-3 text-lg text-slate-500">
@@ -101,7 +104,7 @@ export default function CoursesPage() {
                 placeholder="Search courses or instructors…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-12 pr-4 text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-12 pr-4 text-sm shadow-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-subtle"
               />
               {search && (
                 <button onClick={() => setSearch("")} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -139,13 +142,10 @@ export default function CoursesPage() {
         {/* Grid */}
         {loading ? (
           <div className="flex justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+            <Loader2 className="h-8 w-8 animate-spin text-brand" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-white py-20 text-center">
-            <GraduationCap className="mx-auto mb-4 h-12 w-12 text-slate-200" />
-            <p className="font-medium text-slate-600">No courses found</p>
-          </div>
+          <EmptyState icon={GraduationCap} title="No courses found" />
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2">
             {filtered.map((course) => {
@@ -159,15 +159,12 @@ export default function CoursesPage() {
                 <div
                   key={course.id}
                   onClick={() => router.push(`/dashboard/student/courses/${course.id}`)}
-                  className="flex cursor-pointer flex-col rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-blue-200 hover:shadow-md"
+                  className="flex cursor-pointer flex-col rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-brand/30 hover:shadow-md"
                 >
-                  {/* Gradient top band */}
-                  <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-emerald-400 to-blue-500" />
-
                   <div className="flex flex-1 flex-col p-5">
                     <div className="mb-2">
                       <div className="mb-1.5 flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand">
                           <GraduationCap className="h-4 w-4 text-white" />
                         </div>
                         {course.code && (
@@ -193,9 +190,7 @@ export default function CoursesPage() {
                     {/* Price */}
                     <div className="mt-auto flex items-center justify-between pt-3 border-t border-slate-100">
                       {isFree ? (
-                        <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-700">
-                          Free
-                        </span>
+                        <Badge tone="success">Free</Badge>
                       ) : (
                         <div>
                           <p className="text-sm font-bold text-slate-900">
@@ -208,12 +203,12 @@ export default function CoursesPage() {
                           )}
                         </div>
                       )}
-                      <button
+                      <Button
+                        size="sm"
                         onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/student/courses/${course.id}`); }}
-                        className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700"
                       >
                         View
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
