@@ -1,10 +1,12 @@
 "use client";
 
 import type { ButtonHTMLAttributes } from "react";
+import { Loader2 } from "lucide-react";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "ghost" | "danger";
   size?: "sm" | "md";
+  loading?: boolean;
 };
 
 const VARIANT_CLASSES: Record<NonNullable<ButtonProps["variant"]>, string> = {
@@ -24,13 +26,20 @@ const SIZE_CLASSES: Record<NonNullable<ButtonProps["size"]>, string> = {
 export default function Button({
   variant = "primary",
   size = "md",
+  loading = false,
+  disabled,
   className = "",
+  children,
   ...props
 }: ButtonProps) {
   return (
     <button
+      disabled={disabled === true || loading}
       className={`inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-colors disabled:cursor-not-allowed ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]} ${className}`}
       {...props}
-    />
+    >
+      {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+      {children}
+    </button>
   );
 }

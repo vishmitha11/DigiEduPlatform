@@ -126,12 +126,12 @@ model Program {
   reviewedAt           DateTime?
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
-  
+
   // Recommendation engine fields
   interestTags         String[]
   careerOutcomeTags    String[]
   hostCountry          String?
-  acceptsInternational Boolean               @default(true)
+  acceptsInternational Boolean   @default(true)
   restrictedRegions    String[]
   priceUsd             Float?
   priceCurrency        String?
@@ -139,23 +139,23 @@ model Program {
   durationType         String?
 
   // Relation to embedding meta
-  embeddingMeta        ProgramEmbeddingMeta?
+  embeddingMeta ProgramEmbeddingMeta?
 
-  announcements        Announcement[]
-  courses              Course[]
-  credentials          Credential[]
-  enrollments          Enrollment[]
-  institution          Institution           @relation(fields: [institutionId], references: [id])
-  createdBy            Lecturer?             @relation("ProgramCreator", fields: [createdById], references: [id])
-  reviewedBy           Lecturer?             @relation("ProgramReviewer", fields: [reviewedById], references: [id])
+  announcements Announcement[]
+  courses       Course[]
+  credentials   Credential[]
+  enrollments   Enrollment[]
+  institution   Institution    @relation(fields: [institutionId], references: [id])
+  createdBy     Lecturer?      @relation("ProgramCreator", fields: [createdById], references: [id])
+  reviewedBy    Lecturer?      @relation("ProgramReviewer", fields: [reviewedById], references: [id])
 
   @@schema("public")
 }
 
 model Course {
   id                String             @id @default(cuid())
-  programId         String?            // nullable — standalone courses have no program
-  createdById       String?            // lecturer who owns this course
+  programId         String? // nullable — standalone courses have no program
+  createdById       String? // lecturer who owns this course
   title             String
   code              String?
   description       String?
@@ -164,7 +164,7 @@ model Course {
   year              Int?
   isMandatory       Boolean            @default(true)
   orderIndex        Int                @default(0)
-  isStandalone      Boolean            @default(false)   // true = independent course
+  isStandalone      Boolean            @default(false) // true = independent course
   isPublished       Boolean            @default(false)
   localPrice        Decimal?           @db.Decimal(10, 2)
   foreignPrice      Decimal?           @db.Decimal(10, 2)
@@ -186,7 +186,7 @@ model CourseSection {
   courseId     String
   title        String
   description  String?
-  instructions String?          // Markdown — shown to students
+  instructions String? // Markdown — shown to students
   orderIndex   Int              @default(0)
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
@@ -197,19 +197,19 @@ model CourseSection {
 }
 
 model CourseResource {
-  id          String             @id @default(cuid())
-  courseId    String
-  sectionId   String?            // null = unsectioned (legacy)
-  title       String
-  type        CourseResourceType
-  fileUrl     String?
-  externalUrl String?
-  description String?
-  orderIndex  Int                @default(0)
-  isPublished Boolean            @default(true)
+  id           String             @id @default(cuid())
+  courseId     String
+  sectionId    String? // null = unsectioned (legacy)
+  title        String
+  type         CourseResourceType
+  fileUrl      String?
+  externalUrl  String?
+  description  String?
+  orderIndex   Int                @default(0)
+  isPublished  Boolean            @default(true)
   sizeBytes    Int?
   mimeType     String?
-  durationMins Int?               // estimated read/watch time in minutes
+  durationMins Int? // estimated read/watch time in minutes
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   course       Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -261,25 +261,57 @@ model CourseLecturer {
 }
 
 model Student {
-  id                String                 @id @default(cuid())
-  profileId         String                 @unique
-  studentNumber     String?                @unique
-  olResults         Json?
-  alResults         Json?
-  previousEducation String?
-  employmentStatus  EmploymentStatus?
-  targetCareer      String?
-  emergencyContact  Json?
-  createdAt         DateTime               @default(now())
-  updatedAt         DateTime               @updatedAt
-  submissions       AssessmentSubmission[]
-  credentials       Credential[]
-  enrollments       Enrollment[]
-  jobApplications   JobApplication[]
-  courseEnrollments CourseEnrollment[]
-  resourceProgress  ResourceProgress[]
-  profile           Profile                @relation(fields: [profileId], references: [id])
+  id                    String                 @id @default(cuid())
+  profileId             String                 @unique
+  studentNumber         String?                @unique
+  olResults             Json?
+  alResults             Json?
+  previousEducation     String?
+  employmentStatus      EmploymentStatus?
+  targetCareer          String?
+  emergencyContact      Json?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  submissions           AssessmentSubmission[]
+  credentials           Credential[]
+  enrollments           Enrollment[]
+  jobApplications       JobApplication[]
+  courseEnrollments     CourseEnrollment[]
+  resourceProgress      ResourceProgress[]
+  profile               Profile                @relation(fields: [profileId], references: [id])
   recommendationProfile StudentProfile?
+  studentPublicProfile  StudentPublicProfile?
+  researchPapers        ResearchPaper[]
+
+  @@schema("public")
+}
+
+model StudentPublicProfile {
+  id                String   @id @default(cuid())
+  studentId         String   @unique
+  tagline           String?
+  personalStatement String?
+  location          String?
+  shareToken        String   @unique @default(cuid())
+  isPublic          Boolean  @default(false)
+  visibility        Json     @default("{}")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@schema("public")
+}
+
+model ResearchPaper {
+  id          String              @id @default(cuid())
+  studentId   String
+  title       String
+  status      ResearchPaperStatus @default(UNDER_REVIEW)
+  link        String?
+  publishedAt DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  student     Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@schema("public")
 }
@@ -363,11 +395,11 @@ model AssessmentSubmission {
 }
 
 model ResourceProgress {
-  id          String        @id @default(cuid())
+  id          String         @id @default(cuid())
   studentId   String
   resourceId  String
-  completedAt DateTime      @default(now())
-  student     Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  completedAt DateTime       @default(now())
+  student     Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
   resource    CourseResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, resourceId])
@@ -559,7 +591,7 @@ model StudentProfile {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  student            Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([studentId])
   @@schema("public")
@@ -575,7 +607,7 @@ model ProgramEmbeddingMeta {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  program            Program   @relation(fields: [programId], references: [id], onDelete: Cascade)
+  program Program @relation(fields: [programId], references: [id], onDelete: Cascade)
 
   @@index([programId])
   @@schema("public")
@@ -908,6 +940,13 @@ enum CourseResourceType {
   IMAGE
   PRESENTATION
   EXTERNAL_LINK
+
+  @@schema("public")
+}
+
+enum ResearchPaperStatus {
+  PUBLISHED
+  UNDER_REVIEW
 
   @@schema("public")
 }

@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Library,
   Sparkles,
+  UserCircle,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -31,6 +32,7 @@ export const studentNav: NavSection[] = [
       { label: "Programs", icon: GraduationCap, href: "/dashboard/student/programs" },
       { label: "Courses", icon: Layers, href: "/dashboard/student/courses" },
       { label: "Library", icon: Library, href: "/dashboard/student/library" },
+      { label: "My Profile", icon: UserCircle, href: "/dashboard/student/profile" },
     ],
   },
   {

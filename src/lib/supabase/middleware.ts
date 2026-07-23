@@ -63,6 +63,7 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/contact") ||
     pathname.startsWith("/suspended") ||
     pathname.startsWith("/auth") ||
+    pathname.startsWith("/profile/") ||
     pathname === "/institution/reset-password";
 
   if (user && isPublicPath) {

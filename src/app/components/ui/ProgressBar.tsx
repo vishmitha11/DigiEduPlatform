@@ -12,7 +12,7 @@ export default function ProgressBar({
     <div className={`h-1.5 w-full rounded-full bg-slate-100 ${className}`}>
       <div
         className={`h-1.5 rounded-full transition-all duration-500 ${
-          percent === 100 ? "bg-brand" : "bg-brand-dim"
+          percent === 100 ? "bg-emerald-500" : "bg-brand"
         }`}
         style={{ width: `${percent}%` }}
       />
