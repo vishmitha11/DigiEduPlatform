@@ -24,9 +24,9 @@ export default async function DashboardLayout({
     role = profile?.role ?? null;
   }
 
-  if (role === "STUDENT") {
+  if (role === "STUDENT" || role === "EMPLOYER") {
     return (
-      <DashboardShell role="STUDENT">
+      <DashboardShell role={role}>
         <main>{children}</main>
         <Footer />
       </DashboardShell>

@@ -116,7 +116,7 @@ export default function EmployerDashboard() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
-          <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-blue-600" />
+          <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-brand" />
           <p className="text-gray-600">Loading dashboard...</p>
         </div>
       </div>
@@ -137,13 +137,13 @@ export default function EmployerDashboard() {
           <div>
             <h1 className="mb-2 text-3xl font-bold text-gray-900">Employer Dashboard</h1>
             <p className="text-gray-600">
-              Welcome back, <span className="font-semibold text-blue-600">{fullName ?? "Employer"}</span>
+              Welcome back, <span className="font-semibold text-brand-dim">{fullName ?? "Employer"}</span>
             </p>
           </div>
           {approvalStatus === "APPROVED" && (
             <button
               onClick={() => router.push("/careers")}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+              className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dim"
             >
               + Post Job
             </button>
@@ -162,10 +162,10 @@ export default function EmployerDashboard() {
           <>
             <div className="mb-8 grid gap-6 md:grid-cols-4">
               {[
-                { icon: Briefcase, color: "text-blue-600", value: jobs.length, label: "Total Postings" },
-                { icon: TrendingUp, color: "text-green-600", value: activeJobs, label: "Active Jobs" },
-                { icon: Users, color: "text-orange-600", value: applications.length, label: "Applications" },
-                { icon: FileText, color: "text-purple-600", value: pendingApplications, label: "Pending Review" },
+                { icon: Briefcase, color: "text-brand", value: jobs.length, label: "Total Postings" },
+                { icon: TrendingUp, color: "text-emerald-600", value: activeJobs, label: "Active Jobs" },
+                { icon: Users, color: "text-brand", value: applications.length, label: "Applications" },
+                { icon: FileText, color: "text-amber-600", value: pendingApplications, label: "Pending Review" },
               ].map(({ icon: Icon, color, value, label }) => (
                 <div key={label} className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                   <Icon className={`mb-2 h-8 w-8 ${color}`} />
@@ -180,7 +180,7 @@ export default function EmployerDashboard() {
               <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-6 py-4">
                   <h2 className="text-xl font-bold text-gray-900">Job Postings</h2>
-                  <button onClick={() => router.push("/careers")} className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition hover:bg-blue-700">
+                  <button onClick={() => router.push("/careers")} className="rounded-lg bg-brand px-4 py-2 text-sm text-white transition hover:bg-brand-dim">
                     Post Job
                   </button>
                 </div>
@@ -241,7 +241,7 @@ export default function EmployerDashboard() {
                               </span>
                             </div>
                             {application.status === "APPLIED" && (
-                              <button className="text-sm font-medium text-blue-600 hover:text-blue-700">Review Application</button>
+                              <button className="text-sm font-medium text-brand hover:text-brand-dim">Review Application</button>
                             )}
                           </div>
                         );
