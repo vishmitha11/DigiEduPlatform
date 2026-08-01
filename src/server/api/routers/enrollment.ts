@@ -74,17 +74,23 @@ export const enrollmentRouter = createTRPCRouter({
       orderBy: { createdAt: "desc" },
     });
 
-    const completedCoursesByEnrollment = await Promise.all(
-      enrollments.map(async (e) => {
-        const completed = await ctx.db.courseEnrollment.count({
-          where: { enrollmentId: e.id, status: "COMPLETED" },
-        });
-        return { enrollmentId: e.id, completedCourses: completed };
-      }),
-    );
+    // One grouped query instead of one COUNT per enrollment — the previous
+    // Promise.all still meant N sequential round trips under this project's
+    // connection_limit=1 pooler, since the pool can't actually run them
+    // concurrently.
+    const completedCounts = enrollments.length > 0
+      ? await ctx.db.courseEnrollment.groupBy({
+          by: ["enrollmentId"],
+          where: {
+            enrollmentId: { in: enrollments.map((e) => e.id) },
+            status: "COMPLETED",
+          },
+          _count: { _all: true },
+        })
+      : [];
 
     const completedMap = Object.fromEntries(
-      completedCoursesByEnrollment.map((c) => [c.enrollmentId, c.completedCourses]),
+      completedCounts.map((c) => [c.enrollmentId, c._count._all]),
     );
 
     return enrollments.map((e) => ({

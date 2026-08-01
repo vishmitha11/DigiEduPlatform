@@ -143,7 +143,7 @@ export default function StudentProfilePage() {
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-50 px-4 text-center">
         <AlertCircle className="h-10 w-10 text-red-300" />
         <p className="font-medium text-slate-600">Couldn&apos;t load your profile.</p>
-        <Button variant="secondary" size="sm" onClick={() => refetchProfile()}>
+        <Button variant="ghost" size="sm" onClick={() => refetchProfile()}>
           Try again
         </Button>
       </div>
@@ -262,7 +262,7 @@ export default function StudentProfilePage() {
               Manage your student passport and control what&apos;s shared publicly.
             </p>
           </div>
-          <Button variant="secondary" onClick={copyShareLink}>
+          <Button variant="ghost" onClick={copyShareLink}>
             {copied ? "Copied!" : <><Copy className="h-4 w-4" /> Copy Profile Link</>}
           </Button>
         </div>
@@ -359,7 +359,7 @@ export default function StudentProfilePage() {
                     <Button onClick={saveHeader} loading={upsertProfile.isPending} size="sm">
                       Save
                     </Button>
-                    <Button variant="secondary" size="sm" onClick={() => setEditingHeader(false)}>
+                    <Button variant="ghost" size="sm" onClick={() => setEditingHeader(false)}>
                       <X className="h-4 w-4" /> Cancel
                     </Button>
                   </div>
@@ -386,9 +386,9 @@ export default function StudentProfilePage() {
                         <Lock className="h-3 w-3" /> Coming soon
                       </span>
                     ) : stage.reached ? (
-                      <Badge color="emerald">Reached</Badge>
+                      <Badge tone="success">Reached</Badge>
                     ) : (
-                      <Badge color="slate">Not yet</Badge>
+                      <Badge tone="neutral">Not yet</Badge>
                     )}
                   </div>
                 ))}
@@ -429,7 +429,7 @@ export default function StudentProfilePage() {
                           {c.year ? ` · ${c.year}` : ""}
                         </p>
                       </div>
-                      {c.isValid && <Badge color="emerald">Credential</Badge>}
+                      {c.isValid && <Badge tone="success">Credential</Badge>}
                     </div>
                   ))}
                 </div>
@@ -482,7 +482,7 @@ export default function StudentProfilePage() {
                     >
                       {editingPaperId ? "Update" : "Add"} Paper
                     </Button>
-                    <Button variant="secondary" size="sm" onClick={resetPaperForm}>
+                    <Button variant="ghost" size="sm" onClick={resetPaperForm}>
                       Cancel
                     </Button>
                   </div>
@@ -546,7 +546,7 @@ export default function StudentProfilePage() {
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="flex-1">
-                          <ProgressBar percent={p.progressPercent} />
+                          <ProgressBar value={p.progressPercent} />
                         </div>
                         <span className="text-xs font-bold text-blue-600">{p.progressPercent}%</span>
                       </div>
@@ -563,7 +563,7 @@ export default function StudentProfilePage() {
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="flex-1">
-                          <ProgressBar percent={c.progressPercent} color="violet" />
+                          <ProgressBar value={c.progressPercent} />
                         </div>
                         <span className="text-xs font-bold text-violet-600">{c.progressPercent}%</span>
                       </div>

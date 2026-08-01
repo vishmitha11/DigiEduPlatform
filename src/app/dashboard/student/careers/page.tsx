@@ -8,6 +8,8 @@ import {
   CheckCircle2, AlertCircle,
 } from "lucide-react";
 import { createClient } from "~/lib/supabase/client";
+import Button from "~/app/components/ui/Button";
+import EmptyState from "~/app/components/ui/EmptyState";
 
 interface Job {
   id: string;
@@ -153,7 +155,7 @@ export default function CareersPage() {
       <div className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">Career Opportunities</h1>
+            <h1 className="font-display text-3xl font-bold text-slate-900 sm:text-4xl">Career Opportunities</h1>
             <p className="mt-3 text-lg text-slate-500">
               Find jobs and internships from verified employers
             </p>
@@ -166,7 +168,7 @@ export default function CareersPage() {
                 placeholder="Search jobs, companies or locations…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-12 pr-4 text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-12 pr-4 text-sm shadow-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-subtle"
               />
               {search && (
                 <button onClick={() => setSearch("")} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -210,7 +212,7 @@ export default function CareersPage() {
             onClick={() => setRemoteFilter(!remoteFilter)}
             className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
               remoteFilter
-                ? "bg-blue-600 text-white"
+                ? "bg-brand text-white"
                 : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300"
             }`}
           >
@@ -232,13 +234,10 @@ export default function CareersPage() {
         {/* Jobs list */}
         {loading ? (
           <div className="flex justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+            <Loader2 className="h-8 w-8 animate-spin text-brand" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-white py-20 text-center">
-            <Briefcase className="mx-auto mb-4 h-12 w-12 text-slate-200" />
-            <p className="font-medium text-slate-600">No jobs found</p>
-          </div>
+          <EmptyState icon={Briefcase} title="No jobs found" />
         ) : (
           <div className="space-y-3">
             {filtered.map((job) => {
@@ -250,7 +249,7 @@ export default function CareersPage() {
               const typeMeta = TYPE_META[job.type] ?? { label: job.type, color: "bg-slate-100 text-slate-600" };
 
               return (
-                <div key={job.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-blue-200">
+                <div key={job.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-brand/30">
                   {/* Main row */}
                   <div className="flex items-start gap-4 px-5 py-5">
                     {/* Company logo / initials */}
@@ -274,7 +273,7 @@ export default function CareersPage() {
                         {/* Apply / Applied button */}
                         <div className="flex-shrink-0">
                           {hasApplied || didSucceed ? (
-                            <span className="flex items-center gap-1.5 rounded-lg bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">
+                            <span className="flex items-center gap-1.5 rounded-lg bg-brand-subtle px-4 py-2 text-sm font-semibold text-brand-dim">
                               <CheckCircle2 className="h-4 w-4" /> Applied
                             </span>
                           ) : deadlinePassed ? (
@@ -282,14 +281,10 @@ export default function CareersPage() {
                               Closed
                             </span>
                           ) : (
-                            <button
-                              onClick={() => handleApply(job.id)}
-                              disabled={isApplying}
-                              className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
-                            >
+                            <Button onClick={() => handleApply(job.id)} disabled={isApplying}>
                               {isApplying ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                               {isApplying ? "Applying…" : "Apply Now"}
-                            </button>
+                            </Button>
                           )}
                         </div>
                       </div>

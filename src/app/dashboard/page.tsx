@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "~/lib/supabase/server";
 import { createAdminClient } from "~/lib/supabase/admin";
-import StudentDashboard from "./_components/StudentDashboard";
 import LecturerDashboard from "./_components/LecturerDashboard";
 import EmployerDashboard from "./_components/EmployerDashboard";
 
@@ -26,7 +25,7 @@ export default async function DashboardPage() {
 
   switch (profile.role) {
     case "STUDENT":
-      return <StudentDashboard />;
+      redirect("/dashboard/student");
     case "LECTURER":
       return <LecturerDashboard />;
     case "EMPLOYER":

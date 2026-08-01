@@ -378,11 +378,11 @@ export default function CareerMap() {
       <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.push("/dashboard/student")}
             className="flex items-center gap-2 rounded-xl border border-gray-700 bg-gray-900 px-4 py-2 text-sm font-semibold text-gray-300 transition hover:bg-gray-800"
           >
             <ArrowLeft className="h-4 w-4" />
-            Dashboard
+            My Learning
           </button>
           <div>
             <h1 className="text-lg font-bold text-white">Career Map</h1>

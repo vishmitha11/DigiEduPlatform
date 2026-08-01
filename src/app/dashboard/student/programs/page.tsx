@@ -8,6 +8,9 @@ import {
   CheckCircle2, Layers,
 } from "lucide-react";
 import { createClient } from "~/lib/supabase/client";
+import Button from "~/app/components/ui/Button";
+import Badge from "~/app/components/ui/Badge";
+import EmptyState from "~/app/components/ui/EmptyState";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -153,7 +156,7 @@ export default function ProgramsPage() {
       <div className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">
+            <h1 className="font-display text-3xl font-bold text-slate-900 sm:text-4xl">
               Explore Programs
             </h1>
             <p className="mt-3 text-lg text-slate-500">
@@ -170,7 +173,7 @@ export default function ProgramsPage() {
                 placeholder="Search programs, institutions, fields…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-12 pr-4 text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-12 pr-4 text-sm shadow-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-subtle"
               />
               {search && (
                 <button onClick={() => setSearch("")} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -189,14 +192,14 @@ export default function ProgramsPage() {
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition ${
               showFilters || activeFilters > 0
-                ? "border-blue-300 bg-blue-50 text-blue-700"
+                ? "border-brand/30 bg-brand-subtle text-brand-dim"
                 : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
             }`}
           >
             <Filter className="h-4 w-4" />
             Filters
             {activeFilters > 0 && (
-              <span className="rounded-full bg-blue-600 px-1.5 py-0.5 text-xs font-bold text-white">
+              <span className="rounded-full bg-brand px-1.5 py-0.5 text-xs font-bold text-white">
                 {activeFilters}
               </span>
             )}
@@ -239,7 +242,7 @@ export default function ProgramsPage() {
                   <select
                     value={value}
                     onChange={(e) => set(e.target.value)}
-                    className="w-full appearance-none rounded-lg border border-slate-200 px-3 py-2.5 pr-8 text-sm outline-none focus:border-blue-400"
+                    className="w-full appearance-none rounded-lg border border-slate-200 px-3 py-2.5 pr-8 text-sm outline-none focus:border-brand"
                   >
                     <option value="ALL">All</option>
                     {options.map((o) => (
@@ -261,7 +264,7 @@ export default function ProgramsPage() {
                     onClick={() => setPriceFilter(p)}
                     className={`flex-1 rounded-lg border py-2 text-xs font-semibold transition ${
                       priceFilter === p
-                        ? "border-blue-300 bg-blue-50 text-blue-700"
+                        ? "border-brand/30 bg-brand-subtle text-brand-dim"
                         : "border-slate-200 text-slate-600 hover:bg-slate-50"
                     }`}
                   >
@@ -276,21 +279,17 @@ export default function ProgramsPage() {
         {/* Programs grid */}
         {loading ? (
           <div className="flex justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+            <Loader2 className="h-8 w-8 animate-spin text-brand" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-white py-20 text-center">
-            <BookOpen className="mx-auto mb-4 h-12 w-12 text-slate-200" />
-            <p className="font-medium text-slate-600">No programs found</p>
-            <p className="mt-1 text-sm text-slate-400">Try adjusting your filters</p>
-          </div>
+          <EmptyState icon={BookOpen} title="No programs found" description="Try adjusting your filters" />
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-2">
             {filtered.map((program) => (
               <div
                 key={program.id}
                 onClick={() => router.push(`/dashboard/student/programs/${program.id}`)}
-                className="flex cursor-pointer flex-col rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-blue-200 hover:shadow-md"
+                className="flex cursor-pointer flex-col rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-brand/30 hover:shadow-md"
               >
                 {/* Card header */}
                 <div className="p-5 pb-3">
@@ -359,17 +358,14 @@ export default function ProgramsPage() {
                         )}
                       </div>
                     ) : (
-                      <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-bold text-green-700">
-                        Free
-                      </span>
+                      <Badge tone="success">Free</Badge>
                     )}
                   </div>
-                  <button
+                  <Button
                     onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/student/programs/${program.id}`); }}
-                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
                   >
                     View Details
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}

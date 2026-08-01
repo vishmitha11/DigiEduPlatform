@@ -43,14 +43,13 @@ const TYPE_LABELS: Record<string, string> = {
 
 // ── ProgressBar ───────────────────────────────────────────────────────────
 
-function ProgressBar({ percent, color = "blue", thin = false }: {
-  percent: number; color?: "blue" | "violet" | "emerald"; thin?: boolean;
+function ProgressBar({ percent, color = "brand", thin = false }: {
+  percent: number; color?: "brand" | "emerald"; thin?: boolean;
 }) {
   const h = thin ? "h-1" : "h-1.5";
-  const fill = color === "emerald" ? "bg-emerald-500"
-    : percent === 100 ? "bg-emerald-500"
-    : color === "violet" ? "bg-violet-500"
-    : "bg-blue-500";
+  const fill = percent === 100 ? "bg-emerald-500"
+    : color === "emerald" ? "bg-emerald-500"
+    : "bg-brand";
   return (
     <div className={`${h} w-full rounded-full bg-slate-100`}>
       <div className={`${h} rounded-full transition-all duration-500 ${fill}`} style={{ width: `${percent}%` }} />
@@ -89,7 +88,7 @@ function ContentViewer({ resource }: { resource: any | null }) {
   }
 
   const CoursePill = () => (
-    <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs text-violet-600 shrink-0">
+    <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-600 shrink-0">
       {resource._courseTitle}
     </span>
   );
@@ -199,7 +198,7 @@ function ContentViewer({ resource }: { resource: any | null }) {
           )}
         </div>
         <a href={resource.externalUrl} target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700">
+          className="flex items-center gap-2 rounded-xl bg-brand px-6 py-3 font-semibold text-white transition hover:bg-brand-dim">
           <ExternalLink className="h-4 w-4" /> Open Resource
         </a>
         <p className="text-xs text-slate-400">{resource.externalUrl}</p>
@@ -234,7 +233,7 @@ function ContentViewer({ resource }: { resource: any | null }) {
       </div>
       {(resource.fileUrl ?? resource.externalUrl) && (
         <a href={resource.fileUrl ?? resource.externalUrl} target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
+          className="flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-dim">
           <ExternalLink className="h-4 w-4" /> Open Resource
         </a>
       )}
@@ -280,16 +279,16 @@ function ModuleAssessmentsSection({ module }: { module: any }) {
   return (
     <div className="mb-6">
       <div className="mb-3 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-100 shrink-0">
-          <GraduationCap className="h-4 w-4 text-violet-600" />
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-subtle shrink-0">
+          <GraduationCap className="h-4 w-4 text-brand-dim" />
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="font-bold text-slate-900 truncate">{module.title}</h3>
           {module.code && <p className="font-mono text-xs text-slate-400">{module.code}</p>}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <div className="w-20"><ProgressBar percent={module.progressPercent} color="violet" thin /></div>
-          <span className="text-xs font-bold text-violet-600">{module.progressPercent}%</span>
+          <div className="w-20"><ProgressBar percent={module.progressPercent} color="brand" thin /></div>
+          <span className="text-xs font-bold text-brand">{module.progressPercent}%</span>
         </div>
       </div>
       {isLoading ? (
@@ -349,7 +348,7 @@ function ModuleAssessmentsSection({ module }: { module: any }) {
                         {sub.submissionText && <p className="text-sm leading-relaxed text-slate-700">{sub.submissionText}</p>}
                         {sub.fileUrl && (
                           <a href={sub.fileUrl} target="_blank" rel="noopener noreferrer"
-                            className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:underline">
+                            className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-brand hover:underline">
                             <FileText className="h-3.5 w-3.5" /> View submitted file
                           </a>
                         )}
@@ -373,7 +372,7 @@ function ModuleAssessmentsSection({ module }: { module: any }) {
                           onChange={(e) => setSubmissionText((p) => ({ ...p, [a.id]: e.target.value }))}
                           placeholder="Write your answer or describe your submission…"
                           rows={4}
-                          className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 resize-none"
+                          className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand-subtle resize-none"
                         />
                         {submitError[a.id] && (
                           <p className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
@@ -391,7 +390,7 @@ function ModuleAssessmentsSection({ module }: { module: any }) {
                             submitMutation.mutate({ assessmentId: a.id, submissionText: submissionText[a.id] ?? null });
                           }}
                           disabled={submitting === a.id}
-                          className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
+                          className="flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dim disabled:opacity-60"
                         >
                           {submitting === a.id
                             ? <><Loader2 className="h-4 w-4 animate-spin" /> Submitting…</>
@@ -417,7 +416,7 @@ function ProgramOverviewPanel({ program, onGoToContent }: { program: any; onGoTo
     <div className="space-y-6">
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center gap-2 mb-3">
-          <span className="flex items-center gap-1.5 rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
+          <span className="flex items-center gap-1.5 rounded-full bg-brand-subtle px-3 py-1 text-xs font-semibold text-brand-dim">
             <Award className="h-3.5 w-3.5" />{TYPE_LABELS[program.type] ?? program.type}
           </span>
           {program.institution && (
@@ -440,9 +439,9 @@ function ProgramOverviewPanel({ program, onGoToContent }: { program: any; onGoTo
         {program.description && <p className="text-sm leading-relaxed text-slate-600">{program.description}</p>}
         <div className="mt-5 grid grid-cols-3 gap-3">
           {[
-            { label: "Total Modules",  value: program.totalModules,      color: "text-violet-600",  bg: "bg-violet-50" },
+            { label: "Total Modules",  value: program.totalModules,      color: "text-brand",  bg: "bg-brand-subtle" },
             { label: "Completed",      value: program.completedModules,   color: "text-emerald-600", bg: "bg-emerald-50" },
-            { label: "Progress",       value: `${program.programProgress}%`, color: "text-blue-600", bg: "bg-blue-50" },
+            { label: "Progress",       value: `${program.programProgress}%`, color: "text-brand", bg: "bg-brand-subtle" },
           ].map(({ label, value, color, bg }) => (
             <div key={label} className={`flex flex-col items-center justify-center rounded-xl ${bg} px-3 py-4`}>
               <span className={`text-2xl font-black ${color}`}>{value}</span>
@@ -453,16 +452,16 @@ function ProgramOverviewPanel({ program, onGoToContent }: { program: any; onGoTo
         <div className="mt-4 space-y-1.5">
           <div className="flex justify-between text-xs text-slate-400">
             <span>{program.completedModules}/{program.totalModules} modules complete</span>
-            <span className={`font-bold ${program.programProgress === 100 ? "text-emerald-600" : "text-violet-600"}`}>
+            <span className={`font-bold ${program.programProgress === 100 ? "text-emerald-600" : "text-brand"}`}>
               {program.programProgress}%
             </span>
           </div>
-          <ProgressBar percent={program.programProgress} color="violet" />
+          <ProgressBar percent={program.programProgress} color="brand" />
         </div>
         {program.programProgress === 100 && (
           <div className="mt-4 flex items-center gap-3 rounded-xl bg-emerald-50 px-4 py-3">
             <Award className="h-5 w-5 text-emerald-500" />
-            <p className="text-sm font-bold text-emerald-800">🎉 Program Complete! Excellent work.</p>
+            <p className="text-sm font-bold text-emerald-800">Program Complete! Excellent work.</p>
           </div>
         )}
       </div>
@@ -476,7 +475,7 @@ function ProgramOverviewPanel({ program, onGoToContent }: { program: any; onGoTo
             return (
               <div key={mod.id} className={`rounded-xl border bg-white p-4 transition ${isDone ? "border-emerald-100" : isLocked ? "border-slate-100 opacity-60" : "border-slate-200"}`}>
                 <div className="flex items-start gap-3">
-                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${isDone ? "bg-emerald-100 text-emerald-700" : isLocked ? "bg-slate-100 text-slate-400" : "bg-violet-100 text-violet-700"}`}>
+                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${isDone ? "bg-emerald-100 text-emerald-700" : isLocked ? "bg-slate-100 text-slate-400" : "bg-brand-subtle text-brand-dim"}`}>
                     {isDone ? <CheckCircle2 className="h-4 w-4" /> : isLocked ? <Lock className="h-3.5 w-3.5" /> : idx + 1}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -492,7 +491,7 @@ function ProgramOverviewPanel({ program, onGoToContent }: { program: any; onGoTo
                       </div>
                       {mod.isEnrolled && !isLocked && (
                         <button onClick={() => onGoToContent(mod.id)}
-                          className={`shrink-0 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${isDone ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "bg-violet-600 text-white hover:bg-violet-700"}`}>
+                          className={`shrink-0 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${isDone ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "bg-brand text-white hover:bg-brand-dim"}`}>
                           {isDone ? <><CheckCircle2 className="h-3.5 w-3.5" /> Review</> : <><PlayCircle className="h-3.5 w-3.5" /> {mod.progressPercent > 0 ? "Continue" : "Start"}</>}
                         </button>
                       )}
@@ -501,9 +500,9 @@ function ProgramOverviewPanel({ program, onGoToContent }: { program: any; onGoTo
                       <div className="mt-2 space-y-1">
                         <div className="flex justify-between text-xs text-slate-400">
                           <span>{mod.completedResources}/{mod.totalResources} resources</span>
-                          <span className={`font-bold ${isDone ? "text-emerald-600" : "text-violet-600"}`}>{mod.progressPercent}%</span>
+                          <span className={`font-bold ${isDone ? "text-emerald-600" : "text-brand"}`}>{mod.progressPercent}%</span>
                         </div>
-                        <ProgressBar percent={mod.progressPercent} color="violet" thin />
+                        <ProgressBar percent={mod.progressPercent} color="brand" thin />
                       </div>
                     )}
                     {isLocked && (
@@ -609,7 +608,7 @@ export default function ProgramConductPage({
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="text-center">
-          <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-violet-500" />
+          <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-brand" />
           <p className="text-sm text-slate-500">Loading program…</p>
         </div>
       </div>
@@ -622,7 +621,7 @@ export default function ProgramConductPage({
         <div className="text-center">
           <p className="font-medium text-slate-600">Program not found or you're not enrolled.</p>
           <button onClick={() => router.push("/dashboard/student/programs")}
-            className="mt-3 text-sm text-blue-600 hover:underline">Back to Programs</button>
+            className="mt-3 text-sm text-brand hover:underline">Back to Programs</button>
         </div>
       </div>
     );
@@ -636,11 +635,11 @@ export default function ProgramConductPage({
         <p className="mb-3 text-xs text-slate-400">{program.completedResources}/{program.totalResources} resources</p>
         <div className="flex items-center justify-between text-xs text-slate-400 mb-1.5">
           <span>{program.completedModules}/{program.totalModules} modules</span>
-          <span className={`font-bold ${program.programProgress === 100 ? "text-emerald-600" : "text-violet-600"}`}>
+          <span className={`font-bold ${program.programProgress === 100 ? "text-emerald-600" : "text-brand"}`}>
             {program.programProgress}%
           </span>
         </div>
-        <ProgressBar percent={program.programProgress} color="violet" />
+        <ProgressBar percent={program.programProgress} color="brand" />
       </div>
 
       <div className="flex-1 overflow-y-auto py-1">
@@ -656,7 +655,7 @@ export default function ProgramConductPage({
                 disabled={isModLocked}
                 className={`flex w-full items-center gap-3 px-4 py-3 text-left transition ${isModLocked ? "opacity-50 cursor-not-allowed" : "hover:bg-slate-50"}`}
               >
-                <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${isModDone ? "bg-emerald-100 text-emerald-700" : isModLocked ? "bg-slate-100 text-slate-400" : "bg-violet-100 text-violet-700"}`}>
+                <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${isModDone ? "bg-emerald-100 text-emerald-700" : isModLocked ? "bg-slate-100 text-slate-400" : "bg-brand-subtle text-brand-dim"}`}>
                   {isModDone ? <CheckCircle2 className="h-3.5 w-3.5" /> : isModLocked ? <Lock className="h-3 w-3" /> : modIdx + 1}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -681,7 +680,7 @@ export default function ProgramConductPage({
                           disabled={isSecLocked}
                           className={`flex w-full items-center gap-2.5 py-2 pr-4 text-left transition ${isSecLocked ? "opacity-50 cursor-not-allowed" : "hover:bg-slate-50"}`}
                         >
-                          <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${sec.isComplete ? "bg-emerald-100 text-emerald-600" : isSecLocked ? "bg-slate-100 text-slate-400" : "bg-blue-100 text-blue-600"}`}>
+                          <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${sec.isComplete ? "bg-emerald-100 text-emerald-600" : isSecLocked ? "bg-slate-100 text-slate-400" : "bg-brand-subtle text-brand-dim"}`}>
                             {sec.isComplete ? <CheckCircle2 className="h-3 w-3" /> : isSecLocked ? <Lock className="h-2.5 w-2.5" /> : <span className="text-xs">{sec.completedResources}</span>}
                           </div>
                           <div className="min-w-0 flex-1">
@@ -701,7 +700,7 @@ export default function ProgramConductPage({
                               return (
                                 <button key={r.id}
                                   onClick={() => selectResource(r.id, sec.id, mod.id)}
-                                  className={`flex w-full items-center gap-2.5 py-2 pr-4 text-left transition ${isActive ? "bg-blue-50 border-r-2 border-blue-500" : "hover:bg-slate-50"}`}
+                                  className={`flex w-full items-center gap-2.5 py-2 pr-4 text-left transition ${isActive ? "bg-brand-subtle border-r-2 border-brand" : "hover:bg-slate-50"}`}
                                 >
                                   <div className="shrink-0">
                                     {r.isCompleted
@@ -709,7 +708,7 @@ export default function ProgramConductPage({
                                       : <Circle className="h-3.5 w-3.5 text-slate-300" />}
                                   </div>
                                   <div className="min-w-0 flex-1">
-                                    <p className={`truncate text-xs ${isActive ? "font-semibold text-blue-700" : r.isCompleted ? "text-slate-400" : "text-slate-700"}`}>
+                                    <p className={`truncate text-xs ${isActive ? "font-semibold text-brand-dim" : r.isCompleted ? "text-slate-400" : "text-slate-700"}`}>
                                       {r.title}
                                     </p>
                                     <div className="flex items-center gap-1.5 mt-0.5">
@@ -740,11 +739,11 @@ export default function ProgramConductPage({
 
       <div className="border-t border-slate-200 p-3 space-y-1">
         <button onClick={() => { setMainTab("OVERVIEW"); setSidebarOpen(false); }}
-          className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${mainTab === "OVERVIEW" ? "bg-violet-50 text-violet-700" : "text-slate-600 hover:bg-slate-50"}`}>
+          className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${mainTab === "OVERVIEW" ? "bg-brand-subtle text-brand-dim" : "text-slate-600 hover:bg-slate-50"}`}>
           <Layers className="h-4 w-4" /> Program Overview
         </button>
         <button onClick={() => { setMainTab("ASSESSMENTS"); setSidebarOpen(false); }}
-          className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${mainTab === "ASSESSMENTS" ? "bg-violet-50 text-violet-700" : "text-slate-600 hover:bg-slate-50"}`}>
+          className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${mainTab === "ASSESSMENTS" ? "bg-brand-subtle text-brand-dim" : "text-slate-600 hover:bg-slate-50"}`}>
           <ClipboardList className="h-4 w-4" /> All Assessments
         </button>
       </div>
@@ -782,17 +781,17 @@ export default function ProgramConductPage({
               { key: "ASSESSMENTS", label: "Assessments", icon: ClipboardList },
             ] as const).map(({ key, label, icon: Icon }) => (
               <button key={key} onClick={() => setMainTab(key)}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${mainTab === key ? "bg-white text-violet-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${mainTab === key ? "bg-white text-brand-dim shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
                 <Icon className="h-3.5 w-3.5" />{label}
               </button>
             ))}
           </div>
           <div className="flex items-center gap-2">
             <div className="hidden h-1.5 w-20 rounded-full bg-slate-200 sm:block">
-              <div className={`h-1.5 rounded-full transition-all ${program.programProgress === 100 ? "bg-emerald-500" : "bg-violet-500"}`}
+              <div className={`h-1.5 rounded-full transition-all ${program.programProgress === 100 ? "bg-emerald-500" : "bg-brand"}`}
                 style={{ width: `${program.programProgress}%` }} />
             </div>
-            <span className={`text-xs font-bold ${program.programProgress === 100 ? "text-emerald-600" : "text-violet-600"}`}>
+            <span className={`text-xs font-bold ${program.programProgress === 100 ? "text-emerald-600" : "text-brand"}`}>
               {program.programProgress}%
             </span>
           </div>
@@ -876,7 +875,7 @@ export default function ProgramConductPage({
                     <button
                       onClick={() => toggleComplete.mutate({ resourceId: activeResource.id, courseId: activeResource._courseId })}
                       disabled={toggleComplete.isPending}
-                      className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition ${activeResource.isCompleted ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "bg-blue-600 text-white hover:bg-blue-700"}`}
+                      className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition ${activeResource.isCompleted ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "bg-brand text-white hover:bg-brand-dim"}`}
                     >
                       {toggleComplete.isPending
                         ? <Loader2 className="h-4 w-4 animate-spin" />
@@ -909,7 +908,7 @@ export default function ProgramConductPage({
                 <div className="shrink-0 border-t border-emerald-100 bg-emerald-50 px-4 py-3">
                   <div className="flex items-center justify-center gap-3 text-sm font-semibold text-emerald-700">
                     <Award className="h-5 w-5" />
-                    🎉 You've completed the entire program! Outstanding work.
+                    You&apos;ve completed the entire program! Outstanding work.
                     <button onClick={() => router.push("/dashboard/student")}
                       className="ml-2 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700">
                       Back to Dashboard

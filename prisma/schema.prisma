@@ -23,12 +23,19 @@ model Profile {
   address            String?
   city               String?
   district           String?
+  country            String?
+  preferredName      String?
   role               Role                @default(STUDENT)
   isVerified         Boolean             @default(false)
   isActive           Boolean             @default(true)
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   is_admin           Boolean             @default(false)
+  // Consent (Tier 3 opt-ins + proof-of-consent timestamp for the required
+  // Terms/Privacy agreement) — see src/app/components/ConsentCheckboxes.tsx
+  marketingConsent      Boolean          @default(false)
+  dataProcessingConsent Boolean          @default(false)
+  termsAcceptedAt       DateTime?
   announcements      Announcement[]
   employer           Employer?
   lecturer           Lecturer?
@@ -270,6 +277,15 @@ model Student {
   employmentStatus      EmploymentStatus?
   targetCareer          String?
   emergencyContact      Json?
+  // Current-education detail, collected in profile-setup's Education step
+  institute               String?
+  fieldOfStudy            String?
+  degreeProgram           String?
+  yearOrGrade             String?
+  enrollmentStartDate     DateTime?
+  expectedGraduationDate  DateTime?
+  academicStatus          String?
+  gpa                     String?
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   submissions           AssessmentSubmission[]
@@ -282,6 +298,22 @@ model Student {
   recommendationProfile StudentProfile?
   studentPublicProfile  StudentPublicProfile?
   researchPapers        ResearchPaper[]
+  qualifications        StudentQualification[]
+
+  @@schema("public")
+}
+
+// Prior education entries (O/L, A/L, diplomas, etc.) collected as a
+// repeatable list in profile-setup's Education step.
+model StudentQualification {
+  id            String   @id @default(cuid())
+  studentId     String
+  qualification String
+  institute     String?
+  yearCompleted String?
+  grade         String?
+  createdAt     DateTime @default(now())
+  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@schema("public")
 }
@@ -588,6 +620,12 @@ model StudentProfile {
   quizCompletedAt    DateTime?
   profileText        String?   @db.Text
   embeddingUpdatedAt DateTime?
+  // Profile-personalization data collected in profile-setup's Interests
+  // step — stored/displayed only, deliberately NOT wired into the
+  // recommendation scoring engine (see src/lib/recommendation/scoring.ts).
+  contributionGoals     String[]
+  opportunityInterests  String[]
+  skills                String[]
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 

@@ -18,75 +18,79 @@ export const studentProgramRouter = createTRPCRouter({
   getProgramDetail: protectedProcedure
     .input(z.object({ programId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const student = await getStudent(ctx.db, ctx.profile.id);
-
-      // Verify program enrollment
-      const enrollment = await ctx.db.enrollment.findFirst({
-        where: { studentId: student.id, programId: input.programId },
-      });
-      if (!enrollment) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Not enrolled in this program" });
-      }
-
-      // Load program with all courses (modules), sections, resources
-      const program = await ctx.db.program.findUnique({
-        where: { id: input.programId },
-        include: {
-          institution: { select: { name: true, logoUrl: true } },
-          courses: {
-            // Only show published modules to students.
-            // When a lecturer unpublishes a module it disappears from the
-            // student view immediately; re-publishing restores it.
-            where: { isPublished: true },
-            orderBy: { orderIndex: "asc" },
-            include: {
-              courseLecturers: {
-                take: 1,
-                include: {
-                  lecturer: {
-                    select: {
-                      title: true,
-                      profile: { select: { fullName: true } },
+      // student and program don't depend on each other — fetch in parallel.
+      const [student, program] = await Promise.all([
+        getStudent(ctx.db, ctx.profile.id),
+        ctx.db.program.findUnique({
+          where: { id: input.programId },
+          include: {
+            institution: { select: { name: true, logoUrl: true } },
+            courses: {
+              // Only show published modules to students.
+              // When a lecturer unpublishes a module it disappears from the
+              // student view immediately; re-publishing restores it.
+              where: { isPublished: true },
+              orderBy: { orderIndex: "asc" },
+              include: {
+                courseLecturers: {
+                  take: 1,
+                  include: {
+                    lecturer: {
+                      select: {
+                        title: true,
+                        profile: { select: { fullName: true } },
+                      },
                     },
                   },
                 },
-              },
-              sections: {
-                orderBy: { orderIndex: "asc" },
-                include: {
-                  resources: {
-                    // Only show published resources to students
-                    where: { isPublished: true },
-                    orderBy: { orderIndex: "asc" },
+                sections: {
+                  orderBy: { orderIndex: "asc" },
+                  include: {
+                    resources: {
+                      // Only show published resources to students
+                      where: { isPublished: true },
+                      orderBy: { orderIndex: "asc" },
+                    },
                   },
                 },
               },
             },
           },
-        },
-      });
+        }),
+      ]);
 
       if (!program) throw new TRPCError({ code: "NOT_FOUND" });
 
-      // Get all course enrollments for this student (for these courses)
       const courseIds = program.courses.map((c) => c.id);
-      const courseEnrollments = await ctx.db.courseEnrollment.findMany({
-        where: { studentId: student.id, courseId: { in: courseIds } },
-        select: { courseId: true, status: true },
-      });
+
+      // Enrollment check, course-enrollments and resource-progress are all
+      // independent of each other once student.id and courseIds are known —
+      // run them together instead of one after another.
+      const [enrollment, courseEnrollments, progress] = await Promise.all([
+        ctx.db.enrollment.findFirst({
+          where: { studentId: student.id, programId: input.programId },
+        }),
+        ctx.db.courseEnrollment.findMany({
+          where: { studentId: student.id, courseId: { in: courseIds } },
+          select: { courseId: true, status: true },
+        }),
+        ctx.db.resourceProgress.findMany({
+          where: {
+            studentId: student.id,
+            resource: { courseId: { in: courseIds } },
+          },
+          select: { resourceId: true, resource: { select: { courseId: true } } },
+        }),
+      ]);
+
+      if (!enrollment) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Not enrolled in this program" });
+      }
+
       const enrolledCourseIds = new Set(courseEnrollments.map((e) => e.courseId));
       const courseStatusMap = Object.fromEntries(
         courseEnrollments.map((e) => [e.courseId, e.status])
       );
-
-      // Get all resource progress for this student across all courses in program
-      const progress = await ctx.db.resourceProgress.findMany({
-        where: {
-          studentId: student.id,
-          resource: { courseId: { in: courseIds } },
-        },
-        select: { resourceId: true, resource: { select: { courseId: true } } },
-      });
 
       const completedSet = new Set(progress.map((p) => p.resourceId));
       const completedByCourse: Record<string, Set<string>> = {};

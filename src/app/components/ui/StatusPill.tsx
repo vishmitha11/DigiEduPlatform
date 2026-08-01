@@ -1,15 +1,19 @@
-// Semantic status → color mapping, matching the inline StatusBadge idiom
-// already used across the student dashboard.
-const STATUS_CLASSES: Record<string, string> = {
-  ACTIVE: "bg-blue-100 text-blue-700",
-  COMPLETED: "bg-emerald-100 text-emerald-700",
-  PENDING: "bg-amber-100 text-amber-700",
-  APPROVED: "bg-emerald-100 text-emerald-700",
-  FAILED: "bg-red-100 text-red-600",
-  WITHDRAWN: "bg-slate-100 text-slate-500",
-  SUSPENDED: "bg-orange-100 text-orange-600",
-  PUBLISHED: "bg-emerald-100 text-emerald-700",
-  UNDER_REVIEW: "bg-amber-100 text-amber-700",
+import Badge from "~/app/components/ui/Badge";
+
+type BadgeTone = "success" | "warning" | "danger" | "info" | "neutral";
+
+// Semantic status → tone mapping; rendering goes through Badge so every
+// pill in the app shares one visual system.
+const STATUS_TONES: Record<string, BadgeTone> = {
+  ACTIVE: "info",
+  COMPLETED: "success",
+  PENDING: "warning",
+  APPROVED: "success",
+  FAILED: "danger",
+  WITHDRAWN: "neutral",
+  SUSPENDED: "warning",
+  PUBLISHED: "success",
+  UNDER_REVIEW: "warning",
 };
 
 function formatLabel(status: string): string {
@@ -19,17 +23,16 @@ function formatLabel(status: string): string {
     .join(" ");
 }
 
-interface StatusPillProps {
+export default function StatusPill({
+  status,
+  className = "",
+}: {
   status: string;
   className?: string;
-}
-
-export default function StatusPill({ status, className = "" }: StatusPillProps) {
+}) {
   return (
-    <span
-      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_CLASSES[status] ?? "bg-slate-100 text-slate-600"} ${className}`}
-    >
+    <Badge tone={STATUS_TONES[status] ?? "neutral"} className={className}>
       {formatLabel(status)}
-    </span>
+    </Badge>
   );
 }

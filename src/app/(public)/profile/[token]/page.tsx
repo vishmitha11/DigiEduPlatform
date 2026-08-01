@@ -129,9 +129,9 @@ export default function PublicStudentProfilePage({
                           <Lock className="h-3 w-3" /> Coming soon
                         </span>
                       ) : stage.reached ? (
-                        <Badge color="emerald">Reached</Badge>
+                        <Badge tone="success">Reached</Badge>
                       ) : (
-                        <Badge color="slate">Not yet</Badge>
+                        <Badge tone="neutral">Not yet</Badge>
                       )}
                     </div>
                   ))}
@@ -173,7 +173,7 @@ export default function PublicStudentProfilePage({
                             {c.year ? ` · ${c.year}` : ""}
                           </p>
                         </div>
-                        {c.isValid && <Badge color="emerald">Credential</Badge>}
+                        {c.isValid && <Badge tone="success">Credential</Badge>}
                       </div>
                     ))}
                   </div>
@@ -229,7 +229,7 @@ export default function PublicStudentProfilePage({
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="flex-1">
-                            <ProgressBar percent={p.progressPercent} />
+                            <ProgressBar value={p.progressPercent} />
                           </div>
                           <span className="text-xs font-bold text-blue-600">
                             {p.progressPercent}%
@@ -245,7 +245,7 @@ export default function PublicStudentProfilePage({
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="flex-1">
-                            <ProgressBar percent={c.progressPercent} color="violet" />
+                            <ProgressBar value={c.progressPercent} />
                           </div>
                           <span className="text-xs font-bold text-violet-600">
                             {c.progressPercent}%

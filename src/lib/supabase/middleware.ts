@@ -27,6 +27,22 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
+  // Supabase refresh tokens are single-use: getUser() below may rotate the
+  // token pair and stage the new cookies on supabaseResponse. A plain
+  // NextResponse.redirect() would discard them — the browser would keep the
+  // old, already-consumed refresh token and the session would die on the
+  // next request. Every redirect must go through this helper so the
+  // refreshed cookies survive.
+  const redirectTo = (path: string) => {
+    const url = request.nextUrl.clone();
+    url.pathname = path;
+    const redirect = NextResponse.redirect(url);
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirect.cookies.set(cookie);
+    });
+    return redirect;
+  };
+
   // /auth/callback must be excluded from all middleware logic — it's a
   // one-time PKCE code exchange, not a page. Running getUser() here can
   // race with the route handler's exchangeCodeForSession and trigger
@@ -45,6 +61,9 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/signup") ||
     pathname.startsWith("/about") ||
     pathname.startsWith("/contact") ||
+    pathname.startsWith("/careers") ||
+    pathname.startsWith("/terms") ||
+    pathname.startsWith("/privacy") ||
     pathname.startsWith("/suspended") ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/profile/") ||
@@ -59,27 +78,26 @@ export async function updateSession(request: NextRequest) {
 
     if (profile?.isActive !== false) {
       if (profile?.role === "ADMIN") {
-        const url = request.nextUrl.clone();
-        url.pathname = "/admin";
-        return NextResponse.redirect(url);
+        return redirectTo("/admin");
       }
       if (profile?.role === "INSTITUTION") {
-        const url = request.nextUrl.clone();
-        url.pathname = "/institution";
-        return NextResponse.redirect(url);
+        return redirectTo("/institution");
       }
       if (pathname.startsWith("/login") || pathname.startsWith("/signup")) {
-        const url = request.nextUrl.clone();
-        url.pathname = "/dashboard";
-        return NextResponse.redirect(url);
+        return redirectTo("/dashboard");
+      }
+      // A logged-in student/lecturer/employer opening the root URL should
+      // land on their dashboard, not the marketing page — otherwise a
+      // valid session "looks" logged out. Only "/" is claimed; /about,
+      // /contact etc. stay reachable while logged in.
+      if (pathname === "/") {
+        return redirectTo("/dashboard");
       }
     }
   }
 
   if (!user && !isPublicPath) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
+    return redirectTo("/login");
   }
 
   if (user && !isPublicPath) {
@@ -89,29 +107,21 @@ export async function updateSession(request: NextRequest) {
       .eq("id", user.id)
       .single();
 
-    if (profile && profile.isActive === false) {
+    if (profile?.isActive === false) {
       await supabase.auth.signOut();
-      const url = request.nextUrl.clone();
-      url.pathname = "/suspended";
-      return NextResponse.redirect(url);
+      return redirectTo("/suspended");
     }
 
     if (pathname.startsWith("/admin") && profile?.role !== "ADMIN") {
-      const url = request.nextUrl.clone();
-      url.pathname = "/dashboard";
-      return NextResponse.redirect(url);
+      return redirectTo("/dashboard");
     }
 
     if (pathname.startsWith("/institution") && profile?.role !== "INSTITUTION") {
-      const url = request.nextUrl.clone();
-      url.pathname = "/dashboard";
-      return NextResponse.redirect(url);
+      return redirectTo("/dashboard");
     }
 
     if (profile?.role === "INSTITUTION" && !pathname.startsWith("/institution")) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/institution";
-      return NextResponse.redirect(url);
+      return redirectTo("/institution");
     }
   }
 

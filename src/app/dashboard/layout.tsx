@@ -1,7 +1,7 @@
 import { createClient } from "~/lib/supabase/server";
 import Header from "~/app/components/Header";
 import LecturerHeader from "~/app/components/LecturerHeader";
-import StudentSidebar from "~/app/components/StudentSidebar";
+import DashboardShell from "~/app/components/DashboardShell";
 import Footer from "~/app/components/Footer";
 
 export default async function DashboardLayout({
@@ -24,15 +24,12 @@ export default async function DashboardLayout({
     role = profile?.role ?? null;
   }
 
-  if (role === "STUDENT") {
+  if (role === "STUDENT" || role === "EMPLOYER") {
     return (
-      <>
-        <StudentSidebar />
-        <div className="md:pl-64">
-          <main>{children}</main>
-          <Footer />
-        </div>
-      </>
+      <DashboardShell role={role}>
+        <main>{children}</main>
+        <Footer />
+      </DashboardShell>
     );
   }
 

@@ -21,56 +21,57 @@ export const studentCourseRouter = createTRPCRouter({
   getMyEnrollments: protectedProcedure.query(async ({ ctx }) => {
     const student = await getStudent(ctx.db, ctx.profile.id);
 
-    const enrollments = await ctx.db.courseEnrollment.findMany({
-      where: {
-        studentId: student.id,
-        status: { not: "WITHDRAWN" },
-        course: { isStandalone: true },
-      },
-      include: {
-        course: {
-          select: {
-            id: true,
-            title: true,
-            code: true,
-            description: true,
-            isStandalone: true,
-            localPrice: true,
-            foreignPrice: true,
-            program: { select: { title: true, type: true } },
-            courseLecturers: {
-              take: 1,
-              include: {
-                lecturer: {
-                  select: {
-                    title: true,
-                    profile: { select: { fullName: true } },
+    // These two queries are independent (both only need student.id) — run
+    // them concurrently instead of sequentially. The progress query no
+    // longer filters by courseIds from the first query since it doesn't
+    // need to: completedByCourse below is keyed off each enrollment's own
+    // courseId, so any extra rows for un-enrolled courses are just unused.
+    const [enrollments, progress] = await Promise.all([
+      ctx.db.courseEnrollment.findMany({
+        where: {
+          studentId: student.id,
+          status: { not: "WITHDRAWN" },
+          course: { isStandalone: true },
+        },
+        include: {
+          course: {
+            select: {
+              id: true,
+              title: true,
+              code: true,
+              description: true,
+              isStandalone: true,
+              localPrice: true,
+              foreignPrice: true,
+              program: { select: { title: true, type: true } },
+              courseLecturers: {
+                take: 1,
+                include: {
+                  lecturer: {
+                    select: {
+                      title: true,
+                      profile: { select: { fullName: true } },
+                    },
                   },
                 },
               },
-            },
-            sections: {
-              select: {
-                id: true,
-                resources: { select: { id: true } },
+              sections: {
+                select: {
+                  id: true,
+                  resources: { select: { id: true } },
+                },
               },
+              _count: { select: { assessments: true } },
             },
-            _count: { select: { assessments: true } },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    // Fetch progress for each enrollment
-    const courseIds = enrollments.map((e) => e.courseId);
-    const progress = await ctx.db.resourceProgress.findMany({
-      where: {
-        studentId: student.id,
-        resource: { courseId: { in: courseIds } },
-      },
-      select: { resourceId: true, resource: { select: { courseId: true } } },
-    });
+        orderBy: { createdAt: "desc" },
+      }),
+      ctx.db.resourceProgress.findMany({
+        where: { studentId: student.id },
+        select: { resourceId: true, resource: { select: { courseId: true } } },
+      }),
+    ]);
 
     const completedByCourse: Record<string, Set<string>> = {};
     progress.forEach((p) => {
@@ -103,56 +104,61 @@ export const studentCourseRouter = createTRPCRouter({
   getCourseDetail: protectedProcedure
     .input(z.object({ courseId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const student = await getStudent(ctx.db, ctx.profile.id);
+      // student and course don't depend on each other — fetch in parallel.
+      const [student, course] = await Promise.all([
+        getStudent(ctx.db, ctx.profile.id),
+        ctx.db.course.findUnique({
+          where: { id: input.courseId },
+          include: {
+            program: { select: { title: true, type: true } },
+            courseLecturers: {
+              include: {
+                lecturer: {
+                  select: {
+                    title: true,
+                    bio: true,
+                    profile: { select: { fullName: true, email: true } },
+                  },
+                },
+              },
+            },
+            sections: {
+              orderBy: { orderIndex: "asc" },
+              include: {
+                resources: {
+                  where: { isPublished: true },
+                  orderBy: { orderIndex: "asc" },
+                },
+              },
+            },
+            _count: { select: { assessments: true } },
+          },
+        }),
+      ]);
 
-      // Verify enrollment
-      const enrollment = await ctx.db.courseEnrollment.findFirst({
-        where: { studentId: student.id, courseId: input.courseId },
-      });
+      if (!course) throw new TRPCError({ code: "NOT_FOUND" });
+
+      // Enrollment check and progress lookup are also independent of each
+      // other once student.id is known — run together instead of in series.
+      const [enrollment, completed] = await Promise.all([
+        ctx.db.courseEnrollment.findFirst({
+          where: { studentId: student.id, courseId: input.courseId },
+        }),
+        ctx.db.resourceProgress.findMany({
+          where: {
+            studentId: student.id,
+            resource: { courseId: input.courseId },
+          },
+          select: { resourceId: true },
+        }),
+      ]);
+
       if (!enrollment)
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "Not enrolled in this course",
         });
 
-      const course = await ctx.db.course.findUnique({
-        where: { id: input.courseId },
-        include: {
-          program: { select: { title: true, type: true } },
-          courseLecturers: {
-            include: {
-              lecturer: {
-                select: {
-                  title: true,
-                  bio: true,
-                  profile: { select: { fullName: true, email: true } },
-                },
-              },
-            },
-          },
-          sections: {
-            orderBy: { orderIndex: "asc" },
-            include: {
-              resources: {
-                where: { isPublished: true },
-                orderBy: { orderIndex: "asc" },
-              },
-            },
-          },
-          _count: { select: { assessments: true } },
-        },
-      });
-
-      if (!course) throw new TRPCError({ code: "NOT_FOUND" });
-
-      // Get completed resources for this student
-      const completed = await ctx.db.resourceProgress.findMany({
-        where: {
-          studentId: student.id,
-          resource: { courseId: input.courseId },
-        },
-        select: { resourceId: true },
-      });
       const completedSet = new Set(completed.map((c) => c.resourceId));
 
       // Section unlock logic — sections unlock in order
@@ -247,23 +253,27 @@ export const studentCourseRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const student = await getStudent(ctx.db, ctx.profile.id);
 
-      const enrollment = await ctx.db.courseEnrollment.findFirst({
-        where: { studentId: student.id, courseId: input.courseId },
-      });
+      // Enrollment check and the assessments list are independent once
+      // student.id is known — run together instead of in series.
+      const [enrollment, assessments] = await Promise.all([
+        ctx.db.courseEnrollment.findFirst({
+          where: { studentId: student.id, courseId: input.courseId },
+        }),
+        ctx.db.assessment.findMany({
+          where: { courseId: input.courseId },
+          include: {
+            submissions: {
+              where: { studentId: student.id },
+              orderBy: { submittedAt: "desc" },
+              take: 1,
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        }),
+      ]);
+
       if (!enrollment)
         throw new TRPCError({ code: "FORBIDDEN", message: "Not enrolled" });
-
-      const assessments = await ctx.db.assessment.findMany({
-        where: { courseId: input.courseId },
-        include: {
-          submissions: {
-            where: { studentId: student.id },
-            orderBy: { submittedAt: "desc" },
-            take: 1,
-          },
-        },
-        orderBy: { createdAt: "asc" },
-      });
 
       return assessments.map((a) => ({
         ...a,
