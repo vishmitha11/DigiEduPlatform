@@ -56,7 +56,12 @@ BEGIN
     COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
     user_role::public."Role",
     false,
-    CASE WHEN user_role IN ('STUDENT', 'ADMIN') THEN true ELSE false END,
+    -- isActive means "not suspended by an admin" and must start true for
+    -- every role. Lecturer/employer/institution moderation is gated by
+    -- their own approvalStatus columns, NOT by isActive — starting it
+    -- false makes the middleware treat new signups as suspended and lock
+    -- them out before they can even complete profile setup.
+    true,
     CASE WHEN user_role = 'ADMIN' THEN true ELSE false END,
     NOW(), NOW()
   );
@@ -124,6 +129,38 @@ DO $$ BEGIN
     WITH CHECK (auth.uid()::text = "profileId");
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+
+-- ── StudentQualification ──────────────────────────────────────────────────────
+-- Prior-education entries collected as a repeatable list in profile-setup's
+-- Education step. Profile-setup writes replace the whole list wholesale
+-- (delete-then-insert), so students need SELECT/INSERT/DELETE.
+
+ALTER TABLE "StudentQualification" ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+  CREATE POLICY "Students can read own qualifications" ON "StudentQualification"
+    FOR SELECT TO authenticated
+    USING (
+      "studentId" = (SELECT id FROM "Student" WHERE "profileId" = auth.uid()::text)
+    );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "Students can insert own qualifications" ON "StudentQualification"
+    FOR INSERT TO authenticated
+    WITH CHECK (
+      "studentId" = (SELECT id FROM "Student" WHERE "profileId" = auth.uid()::text)
+    );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "Students can delete own qualifications" ON "StudentQualification"
+    FOR DELETE TO authenticated
+    USING (
+      "studentId" = (SELECT id FROM "Student" WHERE "profileId" = auth.uid()::text)
+    );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 
 -- ── Lecturer ──────────────────────────────────────────────────────────────────

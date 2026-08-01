@@ -79,9 +79,20 @@ function ProfilePieChart({ completedCount, total }: { completedCount: number; to
   );
 }
 
-function ProfileCompletionBanner() {
+interface ProfileStatus {
+  completed: boolean;
+  required: boolean;
+  completedSteps: boolean[];
+}
+
+function ProfileCompletionBanner({
+  profileStatus,
+  isLoading,
+}: {
+  profileStatus: ProfileStatus | undefined;
+  isLoading: boolean;
+}) {
   const router = useRouter();
-  const { data: profileStatus, isLoading } = api.studentProfile.getProfileStatus.useQuery();
 
   if (isLoading || !profileStatus?.required || profileStatus?.completed) return null;
 
@@ -129,9 +140,14 @@ function ProfileCompletionBanner() {
   );
 }
 
-function RecommendationsCTA() {
+function RecommendationsCTA({
+  profileStatus,
+  isLoading,
+}: {
+  profileStatus: ProfileStatus | undefined;
+  isLoading: boolean;
+}) {
   const router = useRouter();
-  const { data: profileStatus, isLoading } = api.studentProfile.getProfileStatus.useQuery();
 
   if (isLoading || !profileStatus?.completed) return null;
 
@@ -168,6 +184,11 @@ export default function MyLearningPage() {
 
   const { data: programEnrollments = [], isLoading: programsLoading } =
     api.enrollment.getMyProgramEnrollments.useQuery(undefined, { staleTime: 0 });
+
+  // Shared by the profile-completion banner and the recommendations CTA below —
+  // fetched once here instead of each block independently re-querying the same data.
+  const { data: profileStatus, isLoading: profileStatusLoading } =
+    api.studentProfile.getProfileStatus.useQuery();
 
   const courseInProgress = courseEnrollments.filter((e) => e.progressPercent < 100 && e.status === "ACTIVE").length;
   const courseCompleted  = courseEnrollments.filter((e) => e.progressPercent === 100 || e.status === "COMPLETED").length;
@@ -229,8 +250,8 @@ export default function MyLearningPage() {
         </div>
 
         {/* Profile completion banner / recommendations CTA */}
-        <ProfileCompletionBanner />
-        <RecommendationsCTA />
+        <ProfileCompletionBanner profileStatus={profileStatus} isLoading={profileStatusLoading} />
+        <RecommendationsCTA profileStatus={profileStatus} isLoading={profileStatusLoading} />
 
         {/* Content type toggle */}
         <div className="mb-6 flex items-center gap-3">

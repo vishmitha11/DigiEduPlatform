@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { User, Lock, Bell, Trash2, Settings, Menu, X } from "lucide-react";
+import { User, Lock, Bell, ShieldCheck, Trash2, Settings, Menu, X } from "lucide-react";
 import EditProfileSection from "./EditProfileSection";
 import ChangePasswordSection from "./ChangePasswordSection";
 import NotificationSection from "./NotificationSection";
+import PrivacySection from "./PrivacySection";
 import DeleteAccountSection from "./DeleteAccountSection";
 import StudentSettingsSection from "./StudentSettingsSection";
 import LecturerSettingsSection from "./LecturerSettingsSection";
@@ -39,6 +40,7 @@ export default function SettingsShell({ role }: { role: Role }) {
     ...(role !== "ADMIN" ? [{ id: "role", label: roleLabels[role] ?? "Role Info", icon: Settings }] : []),
     { id: "password", label: "Change Password", icon: Lock },
     { id: "notifications", label: "Notifications", icon: Bell },
+    { id: "privacy", label: "Privacy & Communications", icon: ShieldCheck },
     { id: "delete", label: "Delete Account", icon: Trash2 },
   ];
 
@@ -47,6 +49,7 @@ export default function SettingsShell({ role }: { role: Role }) {
       case "profile": return <EditProfileSection />;
       case "password": return <ChangePasswordSection />;
       case "notifications": return <NotificationSection />;
+      case "privacy": return <PrivacySection />;
       case "delete": return <DeleteAccountSection />;
       case "role":
         switch (role) {

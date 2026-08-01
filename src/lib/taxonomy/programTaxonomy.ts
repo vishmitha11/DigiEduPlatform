@@ -182,6 +182,30 @@ export const BUDGET_TIERS = [
   { id: "premium", label: "Above $10,000", maxUsd: Infinity },
 ] as const;
 
+// Profile-setup Interests step, "How do you want to contribute to the
+// world?" — stored/displayed only, not wired into recommendation scoring.
+export const CONTRIBUTION_GOALS = [
+  { id: "innovate-build", label: "Innovate & Build" },
+  { id: "solve-global-problems", label: "Solve Global Problems" },
+  { id: "advance-research", label: "Advance Research" },
+  { id: "create-impact", label: "Create Impact" },
+  { id: "lead-inspire", label: "Lead & Inspire" },
+  { id: "empower-communities", label: "Empower Communities" },
+] as const;
+
+// Profile-setup Interests step, "What type of opportunities interest you?"
+export const OPPORTUNITY_INTERESTS = [
+  { id: "internships", label: "Internships" },
+  { id: "research-projects", label: "Research Projects" },
+  { id: "scholarships", label: "Scholarships" },
+  { id: "competitions", label: "Competitions" },
+  { id: "hackathons", label: "Hackathons" },
+  { id: "jobs", label: "Jobs" },
+  { id: "volunteer-opportunities", label: "Volunteer Opportunities" },
+  { id: "mentorship", label: "Mentorship" },
+  { id: "startup-funding", label: "Startup & Funding" },
+] as const;
+
 export const PROGRAM_DURATION_TYPES = [
   "short_course",
   "certificate",
@@ -196,6 +220,8 @@ export const PROGRAM_DURATION_TYPES = [
 
 export type InterestCategoryId = typeof INTEREST_CATEGORIES[number]["id"];
 export type CareerGoalId = typeof CAREER_GOALS[number]["id"];
+export type ContributionGoalId = typeof CONTRIBUTION_GOALS[number]["id"];
+export type OpportunityInterestId = typeof OPPORTUNITY_INTERESTS[number]["id"];
 export type SkillLevel = typeof SKILL_LEVELS[number];
 export type DeliveryMode = typeof DELIVERY_MODES[number];
 export type BudgetTierId = typeof BUDGET_TIERS[number]["id"];

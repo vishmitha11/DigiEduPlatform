@@ -92,17 +92,30 @@ export default async function AdminPage() {
       .order("createdAt", { ascending: false }),
   ]);
 
-  const filteredUsers = (allUsers ?? []).filter((u) => {
-    if (u.role === "STUDENT" || u.role === "ADMIN") return true;
+  // Lecturers/employers with PENDING or REJECTED status live in the
+  // Approvals/Rejected tabs, so the Users tab excludes them. But profiles
+  // that signed up and never completed profile setup have no Lecturer/
+  // Employer row at all — without the awaitingSetup case they'd be
+  // invisible everywhere in the admin panel.
+  const filteredUsers = (allUsers ?? []).flatMap((u) => {
+    if (u.role === "STUDENT" || u.role === "ADMIN") {
+      return [{ ...u, awaitingSetup: false }];
+    }
     if (u.role === "LECTURER") {
       const lec = Array.isArray(u.lecturer) ? u.lecturer[0] : null;
-      return lec?.approvalStatus === "APPROVED" || lec?.approvalStatus === "SUSPENDED";
+      if (!lec) return [{ ...u, awaitingSetup: true }];
+      return lec.approvalStatus === "APPROVED" || lec.approvalStatus === "SUSPENDED"
+        ? [{ ...u, awaitingSetup: false }]
+        : [];
     }
     if (u.role === "EMPLOYER") {
       const emp = Array.isArray(u.employer) ? u.employer[0] : null;
-      return emp?.approvalStatus === "APPROVED" || emp?.approvalStatus === "SUSPENDED";
+      if (!emp) return [{ ...u, awaitingSetup: true }];
+      return emp.approvalStatus === "APPROVED" || emp.approvalStatus === "SUSPENDED"
+        ? [{ ...u, awaitingSetup: false }]
+        : [];
     }
-    return false;
+    return [];
   });
 
   const stats = {

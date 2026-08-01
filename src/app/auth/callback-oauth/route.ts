@@ -17,14 +17,33 @@ export async function GET(request: NextRequest) {
       // updateUser runs, so we patch Profile here to guarantee the correct role.
       if (role && ["STUDENT", "LECTURER", "EMPLOYER"].includes(role)) {
         await supabase.auth.updateUser({ data: { role } });
+        // isActive means "not suspended by an admin" — always true at signup.
+        // Lecturer/employer moderation is gated by their approvalStatus
+        // instead; setting isActive false here made the middleware treat
+        // brand-new accounts as suspended and lock them out of profile-setup.
         await supabase
           .from("Profile")
           .update({
             role: role as "STUDENT" | "LECTURER" | "EMPLOYER",
-            isActive: role === "STUDENT",
+            isActive: true,
             updatedAt: new Date().toISOString(),
           })
           .eq("id", data.user.id);
+      }
+
+      // OAuth providers only give us name + email, so consent was never
+      // captured — gate on it once before letting the user continue,
+      // regardless of which step they were originally headed to.
+      const { data: profile } = await supabase
+        .from("Profile")
+        .select("termsAcceptedAt")
+        .eq("id", data.user.id)
+        .single();
+
+      if (!profile?.termsAcceptedAt) {
+        return NextResponse.redirect(
+          `${origin}/auth/complete-profile?next=${encodeURIComponent(next)}`
+        );
       }
 
       return NextResponse.redirect(`${origin}${next}`);

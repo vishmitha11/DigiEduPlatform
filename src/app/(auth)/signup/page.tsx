@@ -18,6 +18,11 @@ import {
   X,
 } from "lucide-react";
 import { createClient } from "~/lib/supabase/client";
+import ConsentCheckboxes, {
+  DEFAULT_CONSENT,
+  type ConsentState,
+} from "~/app/components/ConsentCheckboxes";
+import { BRAND_PANEL_OVERLAY, BRAND_PANEL_PHOTOS } from "~/app/components/TrustBadges";
 
 type UserRole = "STUDENT" | "LECTURER" | "EMPLOYER";
 type OAuthProvider = "google" | "github" | "linkedin_oidc";
@@ -183,6 +188,8 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fullName, setFullName] = useState("");
+  const [preferredName, setPreferredName] = useState("");
+  const [consent, setConsent] = useState<ConsentState>(DEFAULT_CONSENT);
   const [role, setRole] = useState<UserRole>("STUDENT");
   const [otp, setOtp] = useState("");
   const [otpStep, setOtpStep] = useState(false);
@@ -194,22 +201,56 @@ export default function Signup() {
   const router = useRouter();
   const supabase = createClient();
 
+  const applyProfileDetails = async (userId: string) => {
+    await supabase
+      .from("Profile")
+      .update({
+        preferredName: preferredName || null,
+        marketingConsent: consent.marketingConsent,
+        dataProcessingConsent: consent.dataProcessingConsent,
+        termsAcceptedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+      .eq("id", userId);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    const trimmedName = fullName.trim();
+    if (trimmedName.length < 2) {
+      setError("Enter your full name.");
+      return;
+    }
+    const trimmedEmail = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setError("Enter a valid email address.");
+      return;
+    }
+    if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+      setError("Password must contain at least one letter and one number.");
+      return;
+    }
+    setEmail(trimmedEmail);
+    setFullName(trimmedName);
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
+      return;
+    }
+    if (!consent.termsAccepted) {
+      setError("You must agree to the Terms of Service and Privacy Policy to continue.");
       return;
     }
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: trimmedEmail,
         password,
-        options: { data: { full_name: fullName, role } },
+        options: { data: { full_name: trimmedName, role } },
       });
       if (error) throw error;
-      if (data.session) {
+      if (data.session && data.user) {
+        await applyProfileDetails(data.user.id);
         router.push("/profile-setup");
         router.refresh();
       } else {
@@ -225,14 +266,21 @@ export default function Signup() {
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    if (!/^\d{6}$/.test(otp)) {
+      setError("Enter the 6-digit code from your email.");
+      return;
+    }
     setLoading(true);
     try {
-      const { error } = await supabase.auth.verifyOtp({
+      const { data, error } = await supabase.auth.verifyOtp({
         email,
         token: otp,
         type: "signup",
       });
       if (error) throw error;
+      if (data.user) {
+        await applyProfileDetails(data.user.id);
+      }
       router.push("/profile-setup");
       router.refresh();
     } catch (err) {
@@ -268,7 +316,7 @@ export default function Signup() {
   };
 
   return (
-    <div className="flex min-h-screen font-sans" style={{ background: "#0A0F1E" }}>
+    <div className="flex h-screen font-sans" style={{ background: "#0A0F1E" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
         .font-display { font-family: 'Sora', sans-serif; }
@@ -305,6 +353,7 @@ export default function Signup() {
         .field-input { width:100%; background:var(--navy-surface); border:1.5px solid var(--navy-border); border-radius:12px; padding:13px 16px; color:var(--text-primary); font-family:'Inter',sans-serif; font-size:14.5px; transition:border-color 0.2s ease,box-shadow 0.2s ease; outline:none; }
         .field-input::placeholder { color:var(--text-muted); }
         .field-input:focus { border-color:rgba(34,197,94,0.55); box-shadow:0 0 0 3px rgba(34,197,94,0.14); }
+        select.field-input { appearance:none; }
         .otp-input { width:100%; background:var(--navy-surface); border:1.5px solid var(--navy-border); border-radius:12px; padding:16px; text-align:center; font-family:'Sora',sans-serif; font-size:26px; font-weight:700; letter-spacing:0.5em; color:var(--text-primary); outline:none; transition:border-color 0.2s ease,box-shadow 0.2s ease; }
         .otp-input:focus { border-color:rgba(34,197,94,0.55); box-shadow:0 0 0 3px rgba(34,197,94,0.14); }
         .gold-btn { background:linear-gradient(135deg,#22C55E 0%,#16A34A 100%); color:#0A0F1E; transition:box-shadow 0.3s ease,transform 0.2s ease,opacity 0.2s ease; }
@@ -317,6 +366,10 @@ export default function Signup() {
         .spin-icon { animation:spin 0.8s linear infinite; }
         .role-chip { display:flex; flex-direction:column; align-items:center; gap:8px; border-radius:12px; border:1.5px solid var(--navy-border); padding:14px 10px; cursor:pointer; transition:border-color 0.2s ease,background 0.2s ease; background:var(--navy-surface); }
         .role-chip.selected { border-color:rgba(34,197,94,0.55); background:rgba(34,197,94,0.07); }
+        .form-section-label { font-family:'Sora',sans-serif; font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--gold); margin-bottom:2px; }
+        .consent-block span, .consent-block .text-slate-600, .consent-block .text-slate-400 { color:var(--text-secondary) !important; }
+        .consent-block a, .consent-block .text-brand { color:var(--gold) !important; }
+        .consent-block input[type="checkbox"] { accent-color: var(--gold); }
       `}</style>
 
       {/* Role Picker Modal */}
@@ -329,10 +382,18 @@ export default function Signup() {
       )}
 
       {/* ── LEFT: BRAND PANEL ─────────────────────────────────────────── */}
-      <div
-        className="relative hidden lg:flex lg:w-[440px] flex-shrink-0 flex-col justify-between overflow-hidden px-10 py-12"
-        style={{ background: "linear-gradient(135deg, #0A0F1E 0%, #0E1426 50%, #141C36 100%)" }}
-      >
+      <div className="relative hidden h-screen lg:flex lg:w-[440px] flex-shrink-0 flex-col justify-between overflow-hidden px-11 py-14">
+        <div
+          className="absolute inset-0 -z-20"
+          style={{
+            backgroundImage: `url('${BRAND_PANEL_PHOTOS[role]}')`,
+            transition: "background-image 0.3s ease",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            transform: "scale(1.1)",
+          }}
+        />
+        <div className="absolute inset-0 -z-10" style={{ background: BRAND_PANEL_OVERLAY }} />
         <div className="absolute inset-0 dot-grid" style={{ opacity: 0.05 }} />
         <div className="absolute top-0 right-0 w-[380px] h-[300px] rounded-full pointer-events-none" style={{ background: "radial-gradient(ellipse at top right, rgba(56,189,248,0.07) 0%, transparent 65%)" }} />
         <div className="absolute bottom-0 left-0 w-[320px] h-[260px] rounded-full pointer-events-none" style={{ background: "radial-gradient(ellipse at bottom left, rgba(34,197,94,0.08) 0%, transparent 65%)" }} />
@@ -345,7 +406,7 @@ export default function Signup() {
           <div className="section-rule mb-6" />
           <span className="tag mb-4 inline-block">Get Started</span>
           <h1 className="font-display text-3xl font-bold leading-[1.15] mb-3" style={{ color: "var(--text-primary)" }}>
-            Your structured path<br />to <span className="shimmer-gold">what's next.</span>
+            Your structured path<br />to <span className="shimmer-gold">what&apos;s next.</span>
           </h1>
           <p className="font-body text-sm leading-relaxed mb-8 max-w-xs" style={{ color: "var(--text-secondary)" }}>
             iNEXORA connects learning and careers in one place — built for students, educators, and employers across Sri Lanka.
@@ -368,13 +429,15 @@ export default function Signup() {
           </div>
         </div>
 
-        <p className="relative font-body text-xs anim-fade-up-3" style={{ color: "var(--text-muted)" }}>
-          © {new Date().getFullYear()} iNEXORA by Laelapsion. All rights reserved.
-        </p>
+        <div className="relative space-y-4">
+          <p className="font-body text-xs anim-fade-up-3" style={{ color: "var(--text-muted)" }}>
+            © {new Date().getFullYear()} iNEXORA by Laelapsion. All rights reserved.
+          </p>
+        </div>
       </div>
 
       {/* ── RIGHT: FORM PANEL ─────────────────────────────────────────── */}
-      <div className="relative flex flex-1 items-center justify-center px-6 py-12" style={{ background: "var(--navy-base)" }}>
+      <div className="relative flex h-screen flex-1 items-start justify-center overflow-y-auto px-6 py-12" style={{ background: "var(--navy-base)" }}>
         <button
           type="button"
           onClick={() => (otpStep ? setOtpStep(false) : router.push("/"))}
@@ -387,7 +450,7 @@ export default function Signup() {
           {otpStep ? "Back to sign up" : "Back"}
         </button>
 
-        <div className="w-full max-w-[420px] anim-fade-up">
+        <div className="w-full max-w-[440px] anim-fade-up">
           <div className="mb-6 lg:hidden">
             <span className="font-display text-lg font-bold" style={{ color: "var(--text-primary)" }}>
               iNEX<span className="shimmer-gold">ORA</span>
@@ -437,33 +500,43 @@ export default function Signup() {
                 <div className="divider-line" />
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="mb-2 block font-body text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Full name</label>
-                  <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required placeholder="Jane Perera" className="field-input" />
-                </div>
-                <div>
-                  <label className="mb-2 block font-body text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Email address</label>
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@example.com" className="field-input" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="mb-2 block font-body text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Password</label>
-                    <div className="relative">
-                      <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} placeholder="Min. 6 chars" className="field-input pr-10" />
-                      <button type="button" onClick={() => setShowPassword((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }}>
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* ── Account ── */}
+                <div className="space-y-4">
+                  <p className="form-section-label">Account</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-2 block font-body text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Full name</label>
+                      <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required placeholder="Jane Perera" className="field-input" />
+                    </div>
+                    <div>
+                      <label className="mb-2 block font-body text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Preferred name <span className="normal-case" style={{ color: "var(--text-muted)" }}>(optional)</span></label>
+                      <input type="text" value={preferredName} onChange={(e) => setPreferredName(e.target.value)} placeholder="Jane" className="field-input" />
                     </div>
                   </div>
                   <div>
-                    <label className="mb-2 block font-body text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Confirm</label>
-                    <div className="relative">
-                      <input type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} placeholder="Re-enter" className="field-input pr-10" />
-                      <button type="button" onClick={() => setShowConfirmPassword((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }}>
-                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
+                    <label className="mb-2 block font-body text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Email address</label>
+                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@example.com" className="field-input" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-2 block font-body text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Password</label>
+                      <div className="relative">
+                        <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} placeholder="Min. 6 chars" className="field-input pr-10" />
+                        <button type="button" onClick={() => setShowPassword((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }}>
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-2 block font-body text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Confirm</label>
+                      <div className="relative">
+                        <input type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} placeholder="Re-enter" className="field-input pr-10" />
+                        <button type="button" onClick={() => setShowConfirmPassword((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }}>
+                          {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -486,20 +559,30 @@ export default function Signup() {
                   </div>
                 </div>
 
+                {/* ── Consent ── */}
+                <div className="space-y-3">
+                  <p className="form-section-label">Consent</p>
+                  <ConsentCheckboxes value={consent} onChange={setConsent} className="consent-block text-[13px]" />
+                </div>
+
                 <button type="submit" disabled={loading} className="gold-btn font-display flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold mt-2">
                   {loading ? <><Loader2 className="h-4 w-4 spin-icon" />Creating account...</> : <>Create account<ChevronRight className="h-4 w-4" /></>}
                 </button>
               </form>
-
-              <p className="mt-8 text-center font-body text-xs" style={{ color: "var(--text-muted)" }}>
-                By continuing, you agree to iNEXORA&apos;s{" "}
-                <Link href="/terms" className="underline" style={{ color: "var(--text-secondary)" }}>Terms</Link>{" "}and{" "}
-                <Link href="/privacy" className="underline" style={{ color: "var(--text-secondary)" }}>Privacy Policy</Link>.
-              </p>
             </>
           ) : (
             <form onSubmit={handleVerifyOtp} className="space-y-5">
-              <input type="text" value={otp} onChange={(e) => setOtp(e.target.value)} required placeholder="000000" maxLength={8} className="otp-input" />
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                required
+                placeholder="000000"
+                maxLength={6}
+                className="otp-input"
+              />
               <button type="submit" disabled={loading} className="gold-btn font-display flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold">
                 {loading ? <><Loader2 className="h-4 w-4 spin-icon" />Verifying...</> : <>Verify email<ChevronRight className="h-4 w-4" /></>}
               </button>

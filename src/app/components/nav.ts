@@ -7,6 +7,7 @@ import {
   Layers,
   LayoutDashboard,
   Library,
+  Map,
   Sparkles,
   UserCircle,
   Users,
@@ -40,6 +41,12 @@ export const studentNav: NavSection[] = [
     items: [
       { label: "Recommended for You", icon: Sparkles, href: "/dashboard/student/recommendations" },
       { label: "Careers", icon: Briefcase, href: "/dashboard/student/careers" },
+    ],
+  },
+  {
+    label: "Tools",
+    items: [
+      { label: "Career Map", icon: Map, href: "/career-map" },
     ],
   },
 ];

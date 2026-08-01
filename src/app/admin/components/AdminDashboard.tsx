@@ -82,6 +82,9 @@ interface RecentUser {
   role: string | null;
   isActive: boolean;
   createdAt: string;
+  // Lecturer/employer profiles that signed up but never completed profile
+  // setup (no Lecturer/Employer row yet, so not approvable yet either)
+  awaitingSetup?: boolean;
 }
 
 interface PendingInstitution {
@@ -1417,6 +1420,11 @@ export default function AdminDashboard({
                           {!u.isActive && (
                             <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
                               Suspended
+                            </span>
+                          )}
+                          {u.awaitingSetup && (
+                            <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-700">
+                              Awaiting profile setup
                             </span>
                           )}
                           {u.id === currentUserId ? (

@@ -12,6 +12,8 @@ import {
   SKILL_LEVELS,
   DELIVERY_MODES,
   BUDGET_TIERS,
+  CONTRIBUTION_GOALS,
+  OPPORTUNITY_INTERESTS,
 } from "~/lib/taxonomy/programTaxonomy";
 import { getRegionForCountry } from "~/lib/taxonomy/regionTaxonomy";
 import { PROGRAM_MODE_TO_TAXONOMY_MODE } from "~/lib/taxonomy/programFieldMapping";
@@ -27,6 +29,8 @@ const careerGoalIds = CAREER_GOALS.map((g) => g.id) as [string, ...string[]];
 const skillLevelValues = [...SKILL_LEVELS] as [string, ...string[]];
 const deliveryModeValues = [...DELIVERY_MODES] as [string, ...string[]];
 const budgetTierIds = BUDGET_TIERS.map((b) => b.id) as [string, ...string[]];
+const contributionGoalIds = CONTRIBUTION_GOALS.map((g) => g.id) as [string, ...string[]];
+const opportunityInterestIds = OPPORTUNITY_INTERESTS.map((o) => o.id) as [string, ...string[]];
 
 // All recommendation fields are optional so partial saves from skipped steps work
 const upsertRecommendationProfileInput = z.object({
@@ -36,6 +40,10 @@ const upsertRecommendationProfileInput = z.object({
   preferredMode: z.enum(deliveryModeValues).optional(),
   budgetTierId:  z.enum(budgetTierIds).optional(),
   countryCode:   z.string().length(2).toUpperCase().optional(),
+  // Profile-personalization data — stored/displayed only, not scored.
+  contributionGoals:    z.array(z.enum(contributionGoalIds)).max(3).optional(),
+  opportunityInterests: z.array(z.enum(opportunityInterestIds)).optional(),
+  skills:                z.array(z.string().min(1).max(40)).max(20).optional(),
 });
 
 // ── Recommendation-quiz helpers ──────────────────────────────────────────────
@@ -428,12 +436,24 @@ export const studentProfileRouter = createTRPCRouter({
       return { completed: false, required: false, completedSteps: [] as boolean[] };
     }
 
+    // Single round trip via the relation instead of two sequential
+    // findUnique calls — the second one only ever depended on the first's
+    // id, so there was nothing to gain from keeping them separate.
     const student = await ctx.db.student.findUnique({
       where: { profileId: ctx.profile.id },
       select: {
-        id: true,
         previousEducation: true,
         employmentStatus: true,
+        recommendationProfile: {
+          select: {
+            interests: true,
+            careerGoals: true,
+            skillLevel: true,
+            preferredMode: true,
+            budgetTierId: true,
+            countryCode: true,
+          },
+        },
       },
     });
 
@@ -441,18 +461,7 @@ export const studentProfileRouter = createTRPCRouter({
       return { completed: false, required: false, completedSteps: [] as boolean[] };
     }
 
-    const rec = await ctx.db.studentProfile.findUnique({
-      where: { studentId: student.id },
-      select: {
-        interests: true,
-        careerGoals: true,
-        skillLevel: true,
-        preferredMode: true,
-        budgetTierId: true,
-        countryCode: true,
-      },
-    });
-
+    const rec = student.recommendationProfile;
     const profile = ctx.profile;
 
     const completedSteps: boolean[] = [
@@ -482,9 +491,33 @@ export const studentProfileRouter = createTRPCRouter({
     const student = await ctx.db.student.findUnique({
       where: { profileId: ctx.profile.id },
       select: {
-        id: true,
         previousEducation: true,
         employmentStatus: true,
+        institute: true,
+        fieldOfStudy: true,
+        degreeProgram: true,
+        yearOrGrade: true,
+        enrollmentStartDate: true,
+        expectedGraduationDate: true,
+        academicStatus: true,
+        gpa: true,
+        qualifications: {
+          select: { id: true, qualification: true, institute: true, yearCompleted: true, grade: true },
+          orderBy: { createdAt: "asc" },
+        },
+        recommendationProfile: {
+          select: {
+            interests: true,
+            careerGoals: true,
+            skillLevel: true,
+            preferredMode: true,
+            budgetTierId: true,
+            countryCode: true,
+            contributionGoals: true,
+            opportunityInterests: true,
+            skills: true,
+          },
+        },
       },
     });
 
@@ -492,23 +525,19 @@ export const studentProfileRouter = createTRPCRouter({
     if (!student) {
       return {
         phone: "", dateOfBirth: "", gender: "", city: "", district: "",
+        nationality: "",
         educationLevel: "", employmentStatus: "",
+        institute: "", fieldOfStudy: "", degreeProgram: "", yearOrGrade: "",
+        enrollmentStartDate: "", expectedGraduationDate: "", academicStatus: "",
+        gpa: "",
+        qualifications: [] as { id: string; qualification: string; institute: string | null; yearCompleted: string | null; grade: string | null }[],
         interests: [] as string[], careerGoals: [] as string[],
         skillLevel: "", preferredMode: "", budgetTierId: "", countryCode: "",
+        contributionGoals: [] as string[], opportunityInterests: [] as string[], skills: [] as string[],
       };
     }
 
-    const rec = await ctx.db.studentProfile.findUnique({
-      where: { studentId: student.id },
-      select: {
-        interests: true,
-        careerGoals: true,
-        skillLevel: true,
-        preferredMode: true,
-        budgetTierId: true,
-        countryCode: true,
-      },
-    });
+    const rec = student.recommendationProfile;
 
     return {
       phone:           ctx.profile.phone ?? "",
@@ -518,14 +547,31 @@ export const studentProfileRouter = createTRPCRouter({
       gender:          ctx.profile.gender ?? "",
       city:            ctx.profile.city ?? "",
       district:        ctx.profile.district ?? "",
+      nationality:     ctx.profile.nationality ?? "",
       educationLevel:  student.previousEducation ?? "",
       employmentStatus: student.employmentStatus ?? "",
+      institute:       student.institute ?? "",
+      fieldOfStudy:    student.fieldOfStudy ?? "",
+      degreeProgram:   student.degreeProgram ?? "",
+      yearOrGrade:     student.yearOrGrade ?? "",
+      enrollmentStartDate:    student.enrollmentStartDate
+        ? new Date(student.enrollmentStartDate).toISOString().split("T")[0]!
+        : "",
+      expectedGraduationDate: student.expectedGraduationDate
+        ? new Date(student.expectedGraduationDate).toISOString().split("T")[0]!
+        : "",
+      academicStatus:  student.academicStatus ?? "",
+      gpa:             student.gpa ?? "",
+      qualifications:  student.qualifications,
       interests:       (rec?.interests ?? []) as string[],
       careerGoals:     (rec?.careerGoals ?? []) as string[],
       skillLevel:      rec?.skillLevel ?? "",
       preferredMode:   rec?.preferredMode ?? "",
       budgetTierId:    rec?.budgetTierId ?? "",
       countryCode:     rec?.countryCode ?? "",
+      contributionGoals:    (rec?.contributionGoals ?? []) as string[],
+      opportunityInterests: (rec?.opportunityInterests ?? []) as string[],
+      skills:               (rec?.skills ?? []) as string[],
     };
   }),
 
@@ -566,6 +612,9 @@ export const studentProfileRouter = createTRPCRouter({
         ...(input.preferredMode !== undefined && { preferredMode: input.preferredMode }),
         ...(input.budgetTierId  !== undefined && { budgetTierId:  input.budgetTierId }),
         ...(input.countryCode   !== undefined && { countryCode:   input.countryCode, region }),
+        ...(input.contributionGoals    !== undefined && { contributionGoals:    input.contributionGoals }),
+        ...(input.opportunityInterests !== undefined && { opportunityInterests: input.opportunityInterests }),
+        ...(input.skills                !== undefined && { skills:               input.skills }),
         ...(profileText && { profileText }),
         embeddingUpdatedAt: null,
         ...(fullyComplete && { quizCompletedAt: new Date() }),
@@ -584,6 +633,9 @@ export const studentProfileRouter = createTRPCRouter({
           region:        region ?? null,
           profileText:   profileText || "",
           quizCompletedAt: fullyComplete ? new Date() : null,
+          contributionGoals:    input.contributionGoals    ?? [],
+          opportunityInterests: input.opportunityInterests ?? [],
+          skills:                input.skills                ?? [],
         },
         update: writeData,
       });

@@ -61,6 +61,9 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/signup") ||
     pathname.startsWith("/about") ||
     pathname.startsWith("/contact") ||
+    pathname.startsWith("/careers") ||
+    pathname.startsWith("/terms") ||
+    pathname.startsWith("/privacy") ||
     pathname.startsWith("/suspended") ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/profile/") ||
