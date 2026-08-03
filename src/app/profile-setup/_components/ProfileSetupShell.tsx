@@ -3,6 +3,23 @@
 import { ArrowLeft, ArrowRight, Check, Loader2, ShieldCheck, X, type LucideIcon } from "lucide-react";
 import { BRAND_PANEL_OVERLAY, BRAND_PANEL_PHOTOS, type BrandPanelRole } from "~/app/components/TrustBadges";
 
+// Left-panel headline/subheading — fixed per role (not per step), matching
+// the role-specific photo instead of one generic line for everyone.
+const BRAND_PANEL_TAGLINES: Record<BrandPanelRole, { title: [string, string]; body: string }> = {
+  STUDENT: {
+    title: ["Your Journey.", "Your Purpose."],
+    body: "A few details help us match you with the right programs, people, and opportunities.",
+  },
+  LECTURER: {
+    title: ["Share Your", "Expertise."],
+    body: "A few details help us connect you with the right students, institutions, and opportunities to teach.",
+  },
+  EMPLOYER: {
+    title: ["Find Top", "Talent."],
+    body: "A few details help us connect you with the right graduates and opportunities to hire.",
+  },
+};
+
 // Shared dark-theme form field styles — imported by every role's profile-setup
 // step file instead of each declaring its own (light-theme) copy.
 export const labelClass = "mb-1.5 block text-sm font-medium text-ink-secondary";
@@ -110,12 +127,12 @@ export default function ProfileSetupShell({
         <div className="relative ">
           <div className="mb-7 h-0.5 w-10 rounded-full bg-brand" />
           <h1 className="font-display text-3xl font-bold leading-[1.15] mb-4 text-white">
-            Your Journey.
+            {BRAND_PANEL_TAGLINES[role].title[0]}
             <br />
-            Your Purpose.
+            {BRAND_PANEL_TAGLINES[role].title[1]}
           </h1>
           <p className="text-sm leading-relaxed mb-8 max-w-xs text-white/60">
-            A few details help us match you with the right programs, people, and opportunities.
+            {BRAND_PANEL_TAGLINES[role].body}
           </p>
 
           <div className="space-y-3">
