@@ -20,14 +20,16 @@ const JOB_TYPE_COLORS: Record<string, string> = {
   OVERSEAS: "bg-emerald-50 text-emerald-700",
 };
 
+type JobTypeFilter = "FULL_TIME" | "PART_TIME" | "INTERNSHIP" | "CONTRACT" | "OVERSEAS";
+
 export default function PublicCareersPage() {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [jobType, setJobType] = useState<string>("");
+  const [jobType, setJobType] = useState<JobTypeFilter | "">("");
 
   const { data: jobs = [], isLoading } = api.job.listPublic.useQuery({
     search: search || undefined,
-    type: jobType || undefined,
+    type: jobType === "" ? undefined : jobType,
   }, { staleTime: 60_000 });
 
   return (
@@ -61,7 +63,7 @@ export default function PublicCareersPage() {
             </div>
             <select
               value={jobType}
-              onChange={(e) => setJobType(e.target.value)}
+              onChange={(e) => setJobType(e.target.value as JobTypeFilter | "")}
               className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm outline-none focus:border-blue-400"
             >
               <option value="">All Types</option>

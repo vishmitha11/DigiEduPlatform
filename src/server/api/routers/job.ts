@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import type { JobType } from "@prisma/client";
 import {
   createTRPCRouter,
   employerProcedure,
@@ -38,23 +37,30 @@ export const jobRouter = createTRPCRouter({
   listPublic: publicProcedure
     .input(z.object({
       search: z.string().optional(),
-      type: z.string().optional(),
+      type: z.enum(["FULL_TIME", "PART_TIME", "INTERNSHIP", "CONTRACT", "OVERSEAS"]).optional(),
     }))
     .query(async ({ ctx, input }) => {
-      return ctx.db.jobListing.findMany({
+      const jobs = await ctx.db.jobListing.findMany({
         where: {
           status: "PUBLISHED",
           isActive: true,
           ...(input.search && {
             title: { contains: input.search, mode: "insensitive" },
           }),
-          ...(input.type && { type: input.type as JobType }),
+          ...(input.type && { type: input.type }),
         },
         include: {
-          employer: { select: { companyName: true, logoUrl: true } },
+          employer: { select: { companyName: true, logoUrl: true, industry: true } },
         },
         orderBy: { createdAt: "desc" },
       });
+
+      // Salary figures must never leave the server for listings where the
+      // employer opted out of displaying them publicly — enforce this here
+      // rather than relying on the frontend to hide already-shipped data.
+      return jobs.map((job) =>
+        job.displaySalaryPublicly ? job : { ...job, salaryMin: null, salaryMax: null },
+      );
     }),
 
   getMyListings: employerProcedure.query(async ({ ctx }) => {

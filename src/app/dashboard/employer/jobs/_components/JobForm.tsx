@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, Globe, Loader2, Pencil } from "lucide-react";
+import { Eye, Globe, Pencil } from "lucide-react";
 import { api } from "~/trpc/react";
 import { createClient } from "~/lib/supabase/client";
 import Card from "~/app/components/ui/Card";
