@@ -16,13 +16,16 @@ async function assertCourseAccess(
   courseId: string,
   lecturerId: string,
 ) {
-  const assignment = await db.courseLecturer.findFirst({
-    where: { courseId, lecturerId },
+  // Single query instead of two — one round-trip covers both "owns it" and
+  // "assigned to it" via the courseLecturers relation.
+  const course = await db.course.findFirst({
+    where: {
+      id: courseId,
+      OR: [{ createdById: lecturerId }, { courseLecturers: { some: { lecturerId } } }],
+    },
+    select: { id: true },
   });
-  const owned = await db.course.findFirst({
-    where: { id: courseId, createdById: lecturerId },
-  });
-  if (!assignment && !owned) {
+  if (!course) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "You don't have access to this course",

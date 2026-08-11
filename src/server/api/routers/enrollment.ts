@@ -103,7 +103,38 @@ export const enrollmentRouter = createTRPCRouter({
   enrollInProgram: protectedProcedure
     .input(z.object({ programId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const student = await getStudent(ctx.db, ctx.profile.id);
+      // student/program/courses are independent lookups (none needs another's
+      // result) — resolve them concurrently instead of one round-trip at a time.
+      const [student, program, courses] = await Promise.all([
+        getStudent(ctx.db, ctx.profile.id),
+        ctx.db.program.findUnique({
+          where: { id: input.programId },
+          select: {
+            id: true,
+            title: true,
+            localPrice: true,
+            foreignPrice: true,
+            isPublished: true,
+            approvalStatus: true,
+          },
+        }),
+        // FIX: fetch ALL courses for this program with no filters.
+        // Previously filtered by isMandatory:true AND isPublished:true which
+        // caused zero CourseEnrollment rows to be created when courses were
+        // unpublished, locking every module for the student.
+        ctx.db.course.findMany({
+          where: { programId: input.programId },
+          select: { id: true },
+        }),
+      ]);
+
+      if (!program)
+        throw new TRPCError({ code: "NOT_FOUND", message: "Program not found" });
+      if (!program.isPublished || program.approvalStatus !== "APPROVED")
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Program is not available for enrollment",
+        });
 
       const existing = await ctx.db.enrollment.findFirst({
         where: { studentId: student.id, programId: input.programId },
@@ -114,34 +145,6 @@ export const enrollmentRouter = createTRPCRouter({
           message: "You are already enrolled in this program.",
         });
       }
-
-      const program = await ctx.db.program.findUnique({
-        where: { id: input.programId },
-        select: {
-          id: true,
-          title: true,
-          localPrice: true,
-          foreignPrice: true,
-          isPublished: true,
-          approvalStatus: true,
-        },
-      });
-      if (!program)
-        throw new TRPCError({ code: "NOT_FOUND", message: "Program not found" });
-      if (!program.isPublished || program.approvalStatus !== "APPROVED")
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Program is not available for enrollment",
-        });
-
-      // FIX: fetch ALL courses for this program with no filters.
-      // Previously filtered by isMandatory:true AND isPublished:true which
-      // caused zero CourseEnrollment rows to be created when courses were
-      // unpublished, locking every module for the student.
-      const courses = await ctx.db.course.findMany({
-        where: { programId: input.programId },
-        select: { id: true },
-      });
 
       const isFree = !program.localPrice || Number(program.localPrice) === 0;
 
@@ -220,7 +223,21 @@ export const enrollmentRouter = createTRPCRouter({
   enrollInCourse: protectedProcedure
     .input(z.object({ courseId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const student = await getStudent(ctx.db, ctx.profile.id);
+      // student and course are independent lookups — resolve concurrently.
+      const [student, course] = await Promise.all([
+        getStudent(ctx.db, ctx.profile.id),
+        ctx.db.course.findUnique({
+          where: { id: input.courseId },
+          select: {
+            id: true,
+            title: true,
+            localPrice: true,
+            foreignPrice: true,
+            isPublished: true,
+            isStandalone: true,
+          },
+        }),
+      ]);
 
       const existing = await ctx.db.courseEnrollment.findFirst({
         where: { studentId: student.id, courseId: input.courseId },
@@ -232,17 +249,6 @@ export const enrollmentRouter = createTRPCRouter({
         });
       }
 
-      const course = await ctx.db.course.findUnique({
-        where: { id: input.courseId },
-        select: {
-          id: true,
-          title: true,
-          localPrice: true,
-          foreignPrice: true,
-          isPublished: true,
-          isStandalone: true,
-        },
-      });
       if (!course)
         throw new TRPCError({ code: "NOT_FOUND", message: "Course not found" });
       if (!course.isPublished || !course.isStandalone)

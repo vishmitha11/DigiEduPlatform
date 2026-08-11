@@ -16,25 +16,28 @@ export async function POST(request: Request) {
 
     const supabase = createAdminClient();
 
-    // Update profile with contact info — do NOT set isVerified
-    const { error: profileError } = await supabase
-      .from("Profile")
-      .update({
-        phone: body.phone,
-        city: body.city,
-      })
-      .eq("id", body.userId);
+    // The Profile update and the Employer lookup touch different tables and
+    // don't depend on each other — run them concurrently instead of paying
+    // two sequential round-trips.
+    const [{ error: profileError }, { data: existingRaw }] = await Promise.all([
+      supabase
+        .from("Profile")
+        .update({
+          phone: body.phone,
+          city: body.city,
+        })
+        .eq("id", body.userId),
+      // Re-submitting (editing an existing profile) must not silently reset
+      // an approved employer's status — only the fields admins actually vet
+      // (company identity, not website/description polish) trigger re-review.
+      supabase
+        .from("Employer")
+        .select("id, approvalStatus, isVerified, companyName, industry, companySize")
+        .eq("profileId", body.userId)
+        .maybeSingle(),
+    ]);
 
     if (profileError) throw new Error(profileError.message);
-
-    // Re-submitting (editing an existing profile) must not silently reset an
-    // approved employer's status — only the fields admins actually vet
-    // (company identity, not website/description polish) trigger re-review.
-    const { data: existingRaw } = await supabase
-      .from("Employer")
-      .select("id, approvalStatus, isVerified, companyName, industry, companySize")
-      .eq("profileId", body.userId)
-      .maybeSingle();
 
     const existing = existingRaw as {
       id: string;

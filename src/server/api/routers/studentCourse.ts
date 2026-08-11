@@ -291,18 +291,26 @@ export const studentCourseRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const student = await getStudent(ctx.db, ctx.profile.id);
-
-      const assessment = await ctx.db.assessment.findUnique({
-        where: { id: input.assessmentId },
-        select: { courseId: true, dueDate: true },
-      });
+      // student and assessment are independent lookups — resolve concurrently.
+      const [student, assessment] = await Promise.all([
+        getStudent(ctx.db, ctx.profile.id),
+        ctx.db.assessment.findUnique({
+          where: { id: input.assessmentId },
+          select: { courseId: true, dueDate: true },
+        }),
+      ]);
       if (!assessment) throw new TRPCError({ code: "NOT_FOUND" });
 
-      // Verify enrollment
-      const enrollment = await ctx.db.courseEnrollment.findFirst({
-        where: { studentId: student.id, courseId: assessment.courseId },
-      });
+      // Enrollment check and existing-submission check are independent of
+      // each other once student+assessment are known — resolve concurrently.
+      const [enrollment, existing] = await Promise.all([
+        ctx.db.courseEnrollment.findFirst({
+          where: { studentId: student.id, courseId: assessment.courseId },
+        }),
+        ctx.db.assessmentSubmission.findFirst({
+          where: { assessmentId: input.assessmentId, studentId: student.id },
+        }),
+      ]);
       if (!enrollment)
         throw new TRPCError({ code: "FORBIDDEN", message: "Not enrolled" });
 
@@ -312,11 +320,6 @@ export const studentCourseRouter = createTRPCRouter({
           message: "Submission must include text or a file",
         });
       }
-
-      // Check for existing submission
-      const existing = await ctx.db.assessmentSubmission.findFirst({
-        where: { assessmentId: input.assessmentId, studentId: student.id },
-      });
 
       if (existing && existing.status === "GRADED") {
         throw new TRPCError({

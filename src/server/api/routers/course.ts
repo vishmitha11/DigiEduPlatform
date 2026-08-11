@@ -246,15 +246,35 @@ export const courseRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const program = await ctx.db.program.findUnique({
-        where: { id: input.programId },
-        select: {
-          institutionId: true,
-          approvalStatus: true,
-          isPublished: true,
-          isActive: true,
-        },
-      });
+      // program (validation), existingCount (orderIndex calc), and
+      // programEnrollments (backfill list) are all independent of each
+      // other and of the not-yet-created course — resolve them concurrently.
+      const [program, existingCount, programEnrollments] = await Promise.all([
+        ctx.db.program.findUnique({
+          where: { id: input.programId },
+          select: {
+            institutionId: true,
+            approvalStatus: true,
+            isPublished: true,
+            isActive: true,
+          },
+        }),
+        // FIX: auto-calculate orderIndex as (max existing + 1) so sequential
+        // unlock works correctly — never two courses with the same orderIndex
+        ctx.db.course.count({
+          where: { programId: input.programId },
+        }),
+        // FIX: if the program already has enrolled students, backfill a
+        // CourseEnrollment row for each of them so they can access this
+        // new module immediately without re-enrolling
+        ctx.db.enrollment.findMany({
+          where: {
+            programId: input.programId,
+            status: { in: ["ACTIVE", "APPROVED"] },
+          },
+          select: { id: true, studentId: true },
+        }),
+      ]);
 
       if (!program) {
         throw new TRPCError({
@@ -276,12 +296,6 @@ export const courseRouter = createTRPCRouter({
           message: "Can only add modules to approved programs",
         });
       }
-
-      // FIX: auto-calculate orderIndex as (max existing + 1) so sequential
-      // unlock works correctly — never two courses with the same orderIndex
-      const existingCount = await ctx.db.course.count({
-        where: { programId: input.programId },
-      });
 
       const course = await ctx.db.course.create({
         data: {
@@ -306,17 +320,6 @@ export const courseRouter = createTRPCRouter({
           lecturerId: ctx.lecturer.id,
           role: "LECTURER",
         },
-      });
-
-      // FIX: if the program already has enrolled students, backfill a
-      // CourseEnrollment row for each of them so they can access this
-      // new module immediately without re-enrolling
-      const programEnrollments = await ctx.db.enrollment.findMany({
-        where: {
-          programId: input.programId,
-          status: { in: ["ACTIVE", "APPROVED"] },
-        },
-        select: { id: true, studentId: true },
       });
 
       if (programEnrollments.length > 0) {
@@ -441,11 +444,12 @@ export const courseRouter = createTRPCRouter({
         });
       }
 
-      await ctx.db.courseLecturer.deleteMany({ where: { courseId: input.id } });
-      await ctx.db.assessment.deleteMany({ where: { courseId: input.id } });
-      await ctx.db.courseEnrollment.deleteMany({
-        where: { courseId: input.id },
-      });
+      // Independent cleanup deletes — run concurrently instead of one at a time.
+      await Promise.all([
+        ctx.db.courseLecturer.deleteMany({ where: { courseId: input.id } }),
+        ctx.db.assessment.deleteMany({ where: { courseId: input.id } }),
+        ctx.db.courseEnrollment.deleteMany({ where: { courseId: input.id } }),
+      ]);
 
       return ctx.db.course.delete({ where: { id: input.id } });
     }),

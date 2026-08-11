@@ -9,17 +9,18 @@ import { db } from "~/server/db";
 export async function suspendUser(profileId: string) {
   const supabase = createAdminClient();
 
-  // Suspend the profile
-  await db.profile.update({
-    where: { id: profileId },
-    data: { isActive: false },
-  });
-
-  // If this user is a lecturer, sync their approvalStatus too
-  await db.lecturer.updateMany({
-    where: { profileId },
-    data: { approvalStatus: "SUSPENDED" },
-  });
+  // Suspend the profile, and if this user is a lecturer, sync their
+  // approvalStatus too — independent of each other, run concurrently.
+  await Promise.all([
+    db.profile.update({
+      where: { id: profileId },
+      data: { isActive: false },
+    }),
+    db.lecturer.updateMany({
+      where: { profileId },
+      data: { approvalStatus: "SUSPENDED" },
+    }),
+  ]);
 
   // Block login
   await supabase.auth.admin.updateUserById(profileId, {
@@ -32,16 +33,18 @@ export async function suspendUser(profileId: string) {
 export async function reactivateUser(profileId: string) {
   const supabase = createAdminClient();
 
-  await db.profile.update({
-    where: { id: profileId },
-    data: { isActive: true },
-  });
-
-  // If lecturer, restore approvalStatus
-  await db.lecturer.updateMany({
-    where: { profileId },
-    data: { approvalStatus: "APPROVED" },
-  });
+  // Reactivate the profile, and if lecturer, restore approvalStatus —
+  // independent of each other, run concurrently.
+  await Promise.all([
+    db.profile.update({
+      where: { id: profileId },
+      data: { isActive: true },
+    }),
+    db.lecturer.updateMany({
+      where: { profileId },
+      data: { approvalStatus: "APPROVED" },
+    }),
+  ]);
 
   // Unban
   await supabase.auth.admin.updateUserById(profileId, {
@@ -54,17 +57,24 @@ export async function reactivateUser(profileId: string) {
 export async function deleteUser(id: string) {
   const supabase = createAdminClient();
 
-  const { data: students } = await supabase.from("Student").select("id").eq("profileId", id);
-  const { data: lecturers } = await supabase.from("Lecturer").select("id").eq("profileId", id);
-  const { data: employers } = await supabase.from("Employer").select("id").eq("profileId", id);
+  // A profile is at most one of Student/Lecturer/Employer — these three
+  // lookups are independent, run them concurrently.
+  const [{ data: students }, { data: lecturers }, { data: employers }] = await Promise.all([
+    supabase.from("Student").select("id").eq("profileId", id),
+    supabase.from("Lecturer").select("id").eq("profileId", id),
+    supabase.from("Employer").select("id").eq("profileId", id),
+  ]);
 
   const student = students?.[0] ?? null;
   const lecturer = lecturers?.[0] ?? null;
   const employer = employers?.[0] ?? null;
 
-  if (student) {
-    await supabase.from("AssessmentSubmission").delete().eq("studentId", student.id);
-    await supabase.from("JobApplication").delete().eq("studentId", student.id);
+  async function cleanupStudent() {
+    if (!student) return;
+    await Promise.all([
+      supabase.from("AssessmentSubmission").delete().eq("studentId", student.id),
+      supabase.from("JobApplication").delete().eq("studentId", student.id),
+    ]);
 
     const { data: enrollments } = await supabase
       .from("Enrollment")
@@ -73,9 +83,13 @@ export async function deleteUser(id: string) {
 
     if (enrollments && enrollments.length > 0) {
       const enrollmentIds = enrollments.map((e) => e.id);
-      await supabase.from("CourseEnrollment").delete().in("enrollmentId", enrollmentIds);
-      await supabase.from("Credential").delete().in("enrollmentId", enrollmentIds);
-      await supabase.from("Payment").delete().in("enrollmentId", enrollmentIds);
+      // Children of Enrollment must go before Enrollment itself, but the
+      // three child tables are independent of each other.
+      await Promise.all([
+        supabase.from("CourseEnrollment").delete().in("enrollmentId", enrollmentIds),
+        supabase.from("Credential").delete().in("enrollmentId", enrollmentIds),
+        supabase.from("Payment").delete().in("enrollmentId", enrollmentIds),
+      ]);
       await supabase.from("Enrollment").delete().eq("studentId", student.id);
     }
 
@@ -83,13 +97,18 @@ export async function deleteUser(id: string) {
     await supabase.from("Student").delete().eq("profileId", id);
   }
 
-  if (lecturer) {
-    await supabase.from("InstitutionManager").delete().eq("lecturerId", lecturer.id);
-    await supabase.from("CourseLecturer").delete().eq("lecturerId", lecturer.id);
+  async function cleanupLecturer() {
+    if (!lecturer) return;
+    // Both leaf children of Lecturer, independent of each other.
+    await Promise.all([
+      supabase.from("InstitutionManager").delete().eq("lecturerId", lecturer.id),
+      supabase.from("CourseLecturer").delete().eq("lecturerId", lecturer.id),
+    ]);
     await supabase.from("Lecturer").delete().eq("profileId", id);
   }
 
-  if (employer) {
+  async function cleanupEmployer() {
+    if (!employer) return;
     const { data: jobs } = await supabase
       .from("JobListing")
       .select("id")
@@ -104,11 +123,20 @@ export async function deleteUser(id: string) {
     await supabase.from("Employer").delete().eq("profileId", id);
   }
 
-  await supabase.from("Notification").delete().eq("profileId", id);
-  await supabase.from("Subscription").delete().eq("profileId", id);
-  await supabase.from("Payment").delete().eq("profileId", id);
-  await supabase.from("Announcement").delete().eq("publishedBy", id);
-  await supabase.from("InstitutionAccount").delete().eq("profileId", id);
+  // The three role-specific cleanups (disjoint id spaces) and the five
+  // profile-scoped leaf-table deletes are all independent of each other —
+  // only the final Profile delete needs everything above to finish first.
+  await Promise.all([
+    cleanupStudent(),
+    cleanupLecturer(),
+    cleanupEmployer(),
+    supabase.from("Notification").delete().eq("profileId", id),
+    supabase.from("Subscription").delete().eq("profileId", id),
+    supabase.from("Payment").delete().eq("profileId", id),
+    supabase.from("Announcement").delete().eq("publishedBy", id),
+    supabase.from("InstitutionAccount").delete().eq("profileId", id),
+  ]);
+
   await supabase.from("Profile").delete().eq("id", id);
 
   const { error: authError } = await supabase.auth.admin.deleteUser(id);
@@ -131,16 +159,18 @@ export async function approveLecturer(id: string) {
     .single();
   if (fetchError) throw new Error(fetchError.message);
 
-  const { error: profileError } = await supabase
-    .from("Profile")
-    .update({ isActive: true, isVerified: true })
-    .eq("id", lec.profileId);
+  // Independent of each other once profileId is known — run concurrently.
+  const [{ error: profileError }, { error }] = await Promise.all([
+    supabase
+      .from("Profile")
+      .update({ isActive: true, isVerified: true })
+      .eq("id", lec.profileId),
+    supabase
+      .from("Lecturer")
+      .update({ approvalStatus: "APPROVED" })
+      .eq("id", id),
+  ]);
   if (profileError) throw new Error(profileError.message);
-
-  const { error } = await supabase
-    .from("Lecturer")
-    .update({ approvalStatus: "APPROVED" })
-    .eq("id", id);
   if (error) throw new Error(error.message);
 
   revalidatePath("/admin");
@@ -409,16 +439,18 @@ export async function approveEmployer(id: string) {
     .single();
   if (fetchError) throw new Error(fetchError.message);
 
-  const { error: profileError } = await supabase
-    .from("Profile")
-    .update({ isActive: true, isVerified: true })
-    .eq("id", emp.profileId);
+  // Independent of each other once profileId is known — run concurrently.
+  const [{ error: profileError }, { error }] = await Promise.all([
+    supabase
+      .from("Profile")
+      .update({ isActive: true, isVerified: true })
+      .eq("id", emp.profileId),
+    supabase
+      .from("Employer")
+      .update({ isVerified: true, approvalStatus: "APPROVED" })
+      .eq("id", id),
+  ]);
   if (profileError) throw new Error(profileError.message);
-
-  const { error } = await supabase
-    .from("Employer")
-    .update({ isVerified: true, approvalStatus: "APPROVED" })
-    .eq("id", id);
   if (error) throw new Error(error.message);
 
   revalidatePath("/admin");
@@ -446,16 +478,18 @@ export async function reApproveLecturer(id: string) {
     .single();
   if (fetchError) throw new Error(fetchError.message);
 
-  const { error: profileError } = await supabase
-    .from("Profile")
-    .update({ isActive: true, isVerified: true })
-    .eq("id", lec.profileId);
+  // Independent of each other once profileId is known — run concurrently.
+  const [{ error: profileError }, { error }] = await Promise.all([
+    supabase
+      .from("Profile")
+      .update({ isActive: true, isVerified: true })
+      .eq("id", lec.profileId),
+    supabase
+      .from("Lecturer")
+      .update({ approvalStatus: "APPROVED" })
+      .eq("id", id),
+  ]);
   if (profileError) throw new Error(profileError.message);
-
-  const { error } = await supabase
-    .from("Lecturer")
-    .update({ approvalStatus: "APPROVED" })
-    .eq("id", id);
   if (error) throw new Error(error.message);
 
   revalidatePath("/admin");
@@ -471,16 +505,18 @@ export async function reApproveEmployer(id: string) {
     .single();
   if (fetchError) throw new Error(fetchError.message);
 
-  const { error: profileError } = await supabase
-    .from("Profile")
-    .update({ isActive: true, isVerified: true })
-    .eq("id", emp.profileId);
+  // Independent of each other once profileId is known — run concurrently.
+  const [{ error: profileError }, { error }] = await Promise.all([
+    supabase
+      .from("Profile")
+      .update({ isActive: true, isVerified: true })
+      .eq("id", emp.profileId),
+    supabase
+      .from("Employer")
+      .update({ isVerified: true, approvalStatus: "APPROVED" })
+      .eq("id", id),
+  ]);
   if (profileError) throw new Error(profileError.message);
-
-  const { error } = await supabase
-    .from("Employer")
-    .update({ isVerified: true, approvalStatus: "APPROVED" })
-    .eq("id", id);
   if (error) throw new Error(error.message);
 
   revalidatePath("/admin");

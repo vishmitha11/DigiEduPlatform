@@ -20,25 +20,28 @@ export async function POST(request: Request) {
 
     const supabase = createAdminClient();
 
-    // Update profile contact info — do NOT set isVerified
-    const { error: profileError } = await supabase
-      .from("Profile")
-      .update({
-        phone: body.phone,
-        city: body.city,
-      })
-      .eq("id", body.userId);
+    // The Profile update and the Lecturer lookup touch different tables and
+    // don't depend on each other — run them concurrently instead of paying
+    // two sequential round-trips.
+    const [{ error: profileError }, { data: existingRaw }] = await Promise.all([
+      supabase
+        .from("Profile")
+        .update({
+          phone: body.phone,
+          city: body.city,
+        })
+        .eq("id", body.userId),
+      // Re-submitting (editing an existing profile) must not silently reset
+      // an approved lecturer's status — only the fields admins actually vet
+      // (credentials, not bio/contact polish) trigger re-review.
+      supabase
+        .from("Lecturer")
+        .select("id, approvalStatus, title, specialization, qualifications, experienceYears, institutionId")
+        .eq("profileId", body.userId)
+        .maybeSingle(),
+    ]);
 
     if (profileError) throw new Error(profileError.message);
-
-    // Re-submitting (editing an existing profile) must not silently reset an
-    // approved lecturer's status — only the fields admins actually vet
-    // (credentials, not bio/contact polish) trigger re-review.
-    const { data: existingRaw } = await supabase
-      .from("Lecturer")
-      .select("id, approvalStatus, title, specialization, qualifications, experienceYears, institutionId")
-      .eq("profileId", body.userId)
-      .maybeSingle();
 
     const existing = existingRaw as {
       id: string;
