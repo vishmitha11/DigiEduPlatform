@@ -85,7 +85,7 @@ export default function LecturerHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white font-sans shadow-sm">
+      <header className="sticky top-0 z-50 border-b border-navy-border bg-navy-base font-sans">
         <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
@@ -101,8 +101,8 @@ export default function LecturerHeader() {
                   href={path}
                   className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     isActive(path)
-                      ? "bg-blue-50 text-blue-600"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                      ? "bg-brand/10 text-brand"
+                      : "text-ink-secondary hover:bg-navy-surface hover:text-ink"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -113,35 +113,35 @@ export default function LecturerHeader() {
 
             {/* Profile Dropdown */}
             <div className="hidden items-center gap-3 md:flex">
-              <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700">
+              <span className="rounded-full bg-brand/10 px-2.5 py-1 text-xs font-semibold text-brand">
                 Lecturer
               </span>
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
-                  className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 transition hover:bg-slate-100"
+                  className="flex items-center gap-2 rounded-full border border-navy-border bg-navy-surface px-3 py-2 transition hover:bg-navy-card"
                 >
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand text-xs font-bold text-navy-base">
                     {avatarLetter}
                   </div>
-                  <span className="text-sm font-medium text-slate-700">{displayName}</span>
-                  <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform ${isProfileOpen ? "rotate-180" : ""}`} />
+                  <span className="text-sm font-medium text-ink">{displayName}</span>
+                  <ChevronDown className={`h-4 w-4 text-ink-muted transition-transform ${isProfileOpen ? "rotate-180" : ""}`} />
                 </button>
                 {isProfileOpen && (
-                  <div className="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-slate-100 bg-white py-2 shadow-lg">
-                    <div className="mb-1 border-b border-slate-50 px-4 py-2">
-                      <p className="text-xs font-semibold uppercase text-slate-400">Logged in as</p>
-                      <p className="truncate text-sm font-medium text-slate-900">{user?.email}</p>
+                  <div className="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-navy-border-strong bg-navy-card py-2 shadow-lg">
+                    <div className="mb-1 border-b border-navy-border px-4 py-2">
+                      <p className="text-xs font-semibold uppercase text-ink-muted">Logged in as</p>
+                      <p className="truncate text-sm font-medium text-ink">{user?.email}</p>
                     </div>
                     <button
                       onClick={() => { router.push("/settings"); setIsProfileOpen(false); }}
-                      className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 transition hover:bg-blue-50 hover:text-blue-600"
+                      className="flex w-full items-center gap-3 px-4 py-2 text-sm text-ink-secondary transition hover:bg-navy-surface hover:text-ink"
                     >
                       <Settings className="h-4 w-4" /> Settings
                     </button>
                     <button
                       onClick={() => { setShowSignOutConfirm(true); setIsProfileOpen(false); }}
-                      className="flex w-full items-center gap-3 px-4 py-2 text-sm text-red-600 transition hover:bg-red-50"
+                      className="flex w-full items-center gap-3 px-4 py-2 text-sm text-red-400 transition hover:bg-navy-surface"
                     >
                       <LogOut className="h-4 w-4" /> Sign Out
                     </button>
@@ -151,7 +151,7 @@ export default function LecturerHeader() {
             </div>
 
             {/* Mobile Toggle */}
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 text-slate-600 md:hidden">
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 text-ink-secondary md:hidden">
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
           </div>
@@ -159,28 +159,28 @@ export default function LecturerHeader() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="border-t border-slate-100 py-3 md:hidden">
+          <div className="border-t border-navy-border py-3 md:hidden">
             {lecturerNavigation.map(({ name, path, icon: Icon }) => (
               <Link
                 key={path}
                 href={path}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition ${
-                  isActive(path) ? "bg-blue-50 text-blue-600" : "text-slate-700 hover:bg-slate-50"
+                  isActive(path) ? "bg-brand/10 text-brand" : "text-ink-secondary hover:bg-navy-surface"
                 }`}
               >
                 <Icon className="h-4 w-4" />{name}
               </Link>
             ))}
-            <div className="mt-3 space-y-1 border-t border-slate-100 px-4 pt-3">
+            <div className="mt-3 space-y-1 border-t border-navy-border px-4 pt-3">
               <Link href="/settings" onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 py-2 text-sm font-medium text-slate-700"
+                className="flex items-center gap-3 py-2 text-sm font-medium text-ink-secondary"
               >
                 <Settings className="h-4 w-4" /> Settings
               </Link>
               <button
                 onClick={() => { setMobileMenuOpen(false); setShowSignOutConfirm(true); }}
-                className="flex items-center gap-3 py-2 text-sm font-medium text-red-600"
+                className="flex items-center gap-3 py-2 text-sm font-medium text-red-400"
               >
                 <LogOut className="h-4 w-4" /> Sign Out
               </button>
@@ -192,15 +192,15 @@ export default function LecturerHeader() {
       {/* Sign Out Confirm */}
       {showSignOutConfirm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
-            <div className="mb-4 flex items-center gap-3 text-amber-600">
+          <div className="w-full max-w-sm rounded-2xl border border-navy-border bg-navy-card p-6 shadow-2xl">
+            <div className="mb-4 flex items-center gap-3 text-amber-400">
               <AlertCircle className="h-6 w-6" />
-              <h3 className="text-lg font-bold text-slate-900">Sign Out?</h3>
+              <h3 className="text-lg font-bold text-ink">Sign Out?</h3>
             </div>
-            <p className="mb-6 text-slate-600">Are you sure you want to sign out?</p>
+            <p className="mb-6 text-ink-secondary">Are you sure you want to sign out?</p>
             <div className="flex gap-3">
               <button onClick={() => setShowSignOutConfirm(false)}
-                className="flex-1 rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-200"
+                className="flex-1 rounded-xl bg-navy-surface px-4 py-2.5 text-sm font-semibold text-ink-secondary hover:bg-navy-border"
               >
                 Cancel
               </button>
