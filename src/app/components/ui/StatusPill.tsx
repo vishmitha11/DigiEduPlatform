@@ -14,6 +14,7 @@ const STATUS_TONES: Record<string, BadgeTone> = {
   SUSPENDED: "warning",
   PUBLISHED: "success",
   UNDER_REVIEW: "warning",
+  DRAFT: "neutral",
 };
 
 function formatLabel(status: string): string {

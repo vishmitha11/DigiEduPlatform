@@ -27,6 +27,7 @@ export const createTRPCContext = async (opts: { req: NextRequest }) => {
               managedInstitutions: true, // InstitutionManager rows
             },
           },
+          employer: true,
         },
       })
     : null;
@@ -90,13 +91,13 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
  * Lecturer procedure — requires LECTURER role + approved status
  */
 export const lecturerProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.profile!.role !== "LECTURER") {
+  if (ctx.profile.role !== "LECTURER") {
     throw new TRPCError({ code: "FORBIDDEN", message: "Lecturer access required" });
   }
-  if (!ctx.profile!.lecturer) {
+  if (!ctx.profile.lecturer) {
     throw new TRPCError({ code: "FORBIDDEN", message: "Lecturer profile not found" });
   }
-  if (ctx.profile!.lecturer.approvalStatus !== "APPROVED") {
+  if (ctx.profile.lecturer.approvalStatus !== "APPROVED") {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Your lecturer account is pending approval",
@@ -105,8 +106,33 @@ export const lecturerProcedure = protectedProcedure.use(({ ctx, next }) => {
   return next({
     ctx: {
       ...ctx,
-      profile: ctx.profile!,
-      lecturer: ctx.profile!.lecturer,
+      profile: ctx.profile,
+      lecturer: ctx.profile.lecturer,
+    },
+  });
+});
+
+/**
+ * Employer procedure — requires EMPLOYER role + approved status
+ */
+export const employerProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (ctx.profile.role !== "EMPLOYER") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Employer access required" });
+  }
+  if (!ctx.profile.employer) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Employer profile not found" });
+  }
+  if (ctx.profile.employer.approvalStatus !== "APPROVED") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Your employer account is pending approval",
+    });
+  }
+  return next({
+    ctx: {
+      ...ctx,
+      profile: ctx.profile,
+      employer: ctx.profile.employer,
     },
   });
 });
@@ -137,8 +163,8 @@ export const managerProcedure = lecturerProcedure.use(({ ctx, next }) => {
  * Admin procedure — requires is_admin flag
  */
 export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (!ctx.profile!.is_admin) {
+  if (!ctx.profile.is_admin) {
     throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
   }
-  return next({ ctx: { ...ctx, profile: ctx.profile! } });
+  return next({ ctx: { ...ctx, profile: ctx.profile } });
 });
