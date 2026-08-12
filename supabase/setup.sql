@@ -295,6 +295,56 @@ END $$;
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
+-- 4b. STORAGE POLICIES — avatars bucket
+-- Bucket must exist in Supabase Storage dashboard before running this (create
+-- it as a PUBLIC bucket named "avatars"). Unlike library-resources, scoped
+-- per-user by path convention {userId}/avatar.<ext> — a user may only
+-- write/delete inside their own folder, matching auth.uid().
+-- ─────────────────────────────────────────────────────────────────────────────
+
+DO $$ BEGIN
+  CREATE POLICY "Users can upload own avatar"
+    ON storage.objects FOR INSERT
+    TO authenticated
+    WITH CHECK (
+      bucket_id = 'avatars'
+      AND (storage.foldername(name))[1] = auth.uid()::text
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "Users can update own avatar"
+    ON storage.objects FOR UPDATE
+    TO authenticated
+    USING (
+      bucket_id = 'avatars'
+      AND (storage.foldername(name))[1] = auth.uid()::text
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "Public read access to avatars"
+    ON storage.objects FOR SELECT
+    TO public
+    USING (bucket_id = 'avatars');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "Users can delete own avatar"
+    ON storage.objects FOR DELETE
+    TO authenticated
+    USING (
+      bucket_id = 'avatars'
+      AND (storage.foldername(name))[1] = auth.uid()::text
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
 -- 5. BACKFILL — only needed if OAuth users signed up before the trigger existed
 -- Uncomment and run manually when needed. Safe to run multiple times (LEFT JOIN guard).
 -- ─────────────────────────────────────────────────────────────────────────────

@@ -12,6 +12,7 @@ import type { NavItem, NavSection } from "~/app/components/nav";
 interface Profile {
   fullName: string | null;
   role: string | null;
+  avatarUrl: string | null;
 }
 
 function itemKey(item: NavItem): string {
@@ -47,7 +48,7 @@ export default function AppShell({
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase
       .from("Profile")
-      .select("fullName, role")
+      .select("fullName, role, avatarUrl")
       .eq("id", userId)
       .single();
     setProfile(data);
@@ -244,8 +245,13 @@ export default function AppShell({
             onClick={() => setIsProfileOpen(!isProfileOpen)}
             className="flex w-full items-center gap-3 rounded-xl border border-navy-border bg-navy-surface px-3 py-2 transition-colors hover:bg-navy-card"
           >
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-navy-base">
-              {avatarLetter}
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand text-xs font-bold text-navy-base">
+              {profile?.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                avatarLetter
+              )}
             </div>
             <div className="min-w-0 flex-1 text-left">
               <p className="truncate text-sm font-medium text-ink">{displayName}</p>

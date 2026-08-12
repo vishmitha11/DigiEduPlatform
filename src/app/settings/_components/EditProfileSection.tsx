@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Loader2, Save } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Loader2, Save, Camera, Trash2, User, Eye, X } from "lucide-react";
 import { createClient } from "~/lib/supabase/client";
+import AvatarCropModal from "./AvatarCropModal";
+
+const MAX_AVATAR_BYTES = 3 * 1024 * 1024; // 3MB
 
 export default function EditProfileSection() {
   const supabase = createClient();
@@ -19,6 +22,14 @@ export default function EditProfileSection() {
   const [gender, setGender] = useState("");
   const [nationality, setNationality] = useState("Sri Lankan");
 
+  const [role, setRole] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [showLightbox, setShowLightbox] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -26,7 +37,7 @@ export default function EditProfileSection() {
 
       const { data } = await supabase
         .from("Profile")
-        .select("fullName, phone, city, district, dateOfBirth, gender, nationality")
+        .select("fullName, phone, city, district, dateOfBirth, gender, nationality, role, avatarUrl")
         .eq("id", user.id)
         .single();
 
@@ -38,11 +49,101 @@ export default function EditProfileSection() {
         setDateOfBirth(data.dateOfBirth ? data.dateOfBirth.split("T")[0] : "");
         setGender(data.gender ?? "");
         setNationality(data.nationality ?? "Sri Lankan");
+        setRole(data.role ?? null);
+        setAvatarUrl(data.avatarUrl ?? null);
       }
       setLoading(false);
     };
     void load();
   }, []);
+
+  // Step 1: file picked — validate, then hand off to the crop modal for a
+  // live preview + circle-fit adjustment before anything gets uploaded.
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file later
+    if (!file) return;
+
+    setAvatarError("");
+
+    if (!file.type.startsWith("image/")) {
+      setAvatarError("Please choose an image file.");
+      return;
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      setAvatarError("Image must be under 3MB.");
+      return;
+    }
+
+    setCropSrc(URL.createObjectURL(file));
+  };
+
+  const closeCropModal = () => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+  };
+
+  // Step 2: user confirmed the crop — upload the cropped square image.
+  const handleCropConfirm = async (blob: Blob) => {
+    setUploadingAvatar(true);
+    setAvatarError("");
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const path = `${user.id}/avatar.jpg`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, blob, { upsert: true, cacheControl: "3600", contentType: "image/jpeg" });
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage.from("avatars").getPublicUrl(path);
+      // Cache-bust so the new photo shows immediately even though the path is unchanged.
+      const bustedUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
+
+      const { error: updateError } = await supabase
+        .from("Profile")
+        .update({ avatarUrl: bustedUrl, updatedAt: new Date().toISOString() })
+        .eq("id", user.id);
+      if (updateError) throw updateError;
+
+      setAvatarUrl(bustedUrl);
+      closeCropModal();
+    } catch (err) {
+      setAvatarError(err instanceof Error ? err.message : "Failed to upload photo");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    setAvatarError("");
+    setUploadingAvatar(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Best-effort — try common extensions since we don't track which one is live.
+      await Promise.all(
+        ["jpg", "jpeg", "png", "webp", "gif"].map((ext) =>
+          supabase.storage.from("avatars").remove([`${user.id}/avatar.${ext}`]),
+        ),
+      );
+
+      const { error: updateError } = await supabase
+        .from("Profile")
+        .update({ avatarUrl: null, updatedAt: new Date().toISOString() })
+        .eq("id", user.id);
+      if (updateError) throw updateError;
+
+      setAvatarUrl(null);
+    } catch (err) {
+      setAvatarError(err instanceof Error ? err.message : "Failed to remove photo");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const handleSave = async () => {
     setError("");
@@ -89,6 +190,67 @@ export default function EditProfileSection() {
         <h2 className="text-xl font-bold text-gray-900">Edit Profile</h2>
         <p className="mt-1 text-sm text-gray-500">Update your personal information</p>
       </div>
+
+      {role !== "ADMIN" && (
+        <div className="flex items-center gap-5">
+          <button
+            type="button"
+            onClick={() => avatarUrl && setShowLightbox(true)}
+            disabled={!avatarUrl}
+            className="group relative flex h-20 w-20 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-100 text-2xl font-bold text-blue-700 disabled:cursor-default"
+          >
+            {avatarUrl ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={avatarUrl} alt="Profile photo" className="h-full w-full object-cover" />
+                <div className="absolute inset-0 hidden items-center justify-center bg-black/40 group-hover:flex">
+                  <Eye className="h-5 w-5 text-white" />
+                </div>
+              </>
+            ) : (
+              <User className="h-8 w-8" />
+            )}
+            {uploadingAvatar && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                <Loader2 className="h-5 w-5 animate-spin text-white" />
+              </div>
+            )}
+          </button>
+          <div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+              >
+                <Camera className="h-4 w-4" />
+                {avatarUrl ? "Change Photo" : "Upload Photo"}
+              </button>
+              {avatarUrl && (
+                <button
+                  type="button"
+                  onClick={() => void handleRemoveAvatar()}
+                  disabled={uploadingAvatar}
+                  className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Remove
+                </button>
+              )}
+            </div>
+            <p className="mt-1.5 text-xs text-gray-500">JPG, PNG, WEBP or GIF. Max 3MB.</p>
+            {avatarError && <p className="mt-1 text-xs text-red-600">{avatarError}</p>}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="space-y-4">
         <div>
@@ -192,6 +354,36 @@ export default function EditProfileSection() {
         {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
         {saving ? "Saving..." : "Save Changes"}
       </button>
+
+      {cropSrc && (
+        <AvatarCropModal
+          imageSrc={cropSrc}
+          onCancel={closeCropModal}
+          onConfirm={(blob) => handleCropConfirm(blob)}
+        />
+      )}
+
+      {showLightbox && avatarUrl && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setShowLightbox(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setShowLightbox(false)}
+            className="absolute right-6 top-6 text-white/80 transition hover:text-white"
+          >
+            <X className="h-7 w-7" />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={avatarUrl}
+            alt="Profile photo"
+            className="max-h-[80vh] max-w-[80vw] rounded-2xl object-contain shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
