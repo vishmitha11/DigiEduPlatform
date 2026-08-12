@@ -103,16 +103,6 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
-DO $$ BEGIN
-  CREATE POLICY "Anyone can read profiles of public students" ON "Profile"
-    FOR SELECT TO anon, authenticated
-    USING (EXISTS (
-      SELECT 1 FROM "Student" s
-      JOIN "StudentPublicProfile" spp ON spp."studentId" = s.id
-      WHERE s."profileId" = "Profile".id AND spp."isPublic" = true
-    ));
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 
 -- ── Student ───────────────────────────────────────────────────────────────────
 
@@ -139,15 +129,6 @@ DO $$ BEGIN
     WITH CHECK (auth.uid()::text = "profileId");
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
-
-DO $$ BEGIN
-  CREATE POLICY "Anyone can read students with a public profile" ON "Student"
-    FOR SELECT TO anon, authenticated
-    USING (EXISTS (
-      SELECT 1 FROM "StudentPublicProfile" spp
-      WHERE spp."studentId" = "Student".id AND spp."isPublic" = true
-    ));
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 
 -- ── StudentQualification ──────────────────────────────────────────────────────
@@ -203,12 +184,6 @@ DO $$ BEGIN
     FOR UPDATE TO authenticated
     USING ("studentId" = (SELECT id FROM "Student" WHERE "profileId" = auth.uid()::text))
     WITH CHECK ("studentId" = (SELECT id FROM "Student" WHERE "profileId" = auth.uid()::text));
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN
-  CREATE POLICY "Anyone can read public student-public-profiles" ON "StudentPublicProfile"
-    FOR SELECT TO anon, authenticated
-    USING ("isPublic" = true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
@@ -355,15 +330,6 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
-DO $$ BEGIN
-  CREATE POLICY "Anyone can read credentials of public students" ON "Credential"
-    FOR SELECT TO anon, authenticated
-    USING (EXISTS (
-      SELECT 1 FROM "StudentPublicProfile" spp
-      WHERE spp."studentId" = "Credential"."studentId" AND spp."isPublic" = true
-    ));
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 
 -- ── ResearchPaper ─────────────────────────────────────────────────────────────
 
@@ -395,19 +361,59 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
-  CREATE POLICY "Anyone can read research papers of public profiles" ON "ResearchPaper"
-    FOR SELECT TO anon, authenticated
-    USING (EXISTS (
-      SELECT 1 FROM "StudentPublicProfile" spp
-      WHERE spp."studentId" = "ResearchPaper"."studentId" AND spp."isPublic" = true
-    ));
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN
   CREATE POLICY "Admins can read all research papers" ON "ResearchPaper"
     FOR SELECT TO authenticated
     USING (EXISTS (SELECT 1 FROM "Profile" p WHERE p.id = auth.uid()::text AND p.is_admin = true));
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+
+-- ── Public candidate directory (view) ───────────────────────────────────────
+-- Not consumed by any application code today — candidate.ts and the passport
+-- page both query via Prisma (ctx.db), which connects through DATABASE_URL
+-- using a privileged role that bypasses RLS entirely, same as this view
+-- bypasses the underlying tables' RLS via its owner's privileges. This view
+-- exists purely as defense-in-depth against a *hypothetical* future direct
+-- anon/authenticated supabase-js or PostgREST read.
+--
+-- Deliberately NOT implemented as RLS policies on Student/Profile/Credential/
+-- ResearchPaper/StudentPublicProfile: this file already GRANTs ALL ON ALL
+-- TABLES to anon/authenticated (see line ~15), and Postgres RLS only ever
+-- restricts which ROWS are visible, never which COLUMNS — so any policy that
+-- newly permits SELECT on those tables for anon/authenticated would expose
+-- every column of the matching rows (Profile.email/phone/nicNumber/
+-- dateOfBirth/address, Student.emergencyContact, etc.), not just the safe
+-- ones. A view does its own column allowlisting AND row filtering,
+-- independent of the base tables' grants — granting SELECT on the view
+-- grants nothing on the tables underneath it.
+--
+-- Exposes ONLY the fields candidate.ts's search procedure already
+-- allowlists in its own return statement. Row-filtered to isPublic = true,
+-- matching the passport page's existing visibility gate.
+
+CREATE OR REPLACE VIEW "PublicCandidateDirectory" AS
+SELECT
+  s.id AS "studentId",
+  p."fullName",
+  p."avatarUrl",
+  p."isVerified",
+  s."fieldOfStudy",
+  s."institute",
+  s."degreeProgram",
+  s."yearOrGrade",
+  s."expectedGraduationDate",
+  s."gpa",
+  s."employmentTypePreference",
+  s."workModelPreference",
+  s."availability",
+  spp."shareToken",
+  (SELECT COUNT(*) FROM "ResearchPaper" rp WHERE rp."studentId" = s.id AND rp."status" = 'PUBLISHED') AS "papersCount",
+  (SELECT COUNT(*) FROM "Credential" c WHERE c."studentId" = s.id AND c."isValid" = true) AS "credentialsCount"
+FROM "Student" s
+JOIN "Profile" p ON p.id = s."profileId"
+JOIN "StudentPublicProfile" spp ON spp."studentId" = s.id
+WHERE spp."isPublic" = true;
+
+GRANT SELECT ON "PublicCandidateDirectory" TO anon, authenticated;
 
 
 -- ─────────────────────────────────────────────────────────────────────────────

@@ -74,6 +74,17 @@ export default function CandidateCard({
             {candidate.availability && <StatusPill status={candidate.availability} />}
           </div>
 
+          {/* Raw fieldOfStudy/degreeProgram as returned by the router — never
+              the internal taxonomy classifier, which stays scoped to
+              filtering/facets only. */}
+          {(candidate.degreeProgram ?? candidate.fieldOfStudy) && (
+            <p className="mt-0.5 text-sm text-slate-600">
+              {[candidate.degreeProgram, candidate.fieldOfStudy]
+                .filter((v, i, arr) => !!v && arr.indexOf(v) === i)
+                .join(" · ")}
+            </p>
+          )}
+
           {candidate.tagline && <p className="mt-1 text-sm text-slate-600">{candidate.tagline}</p>}
 
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400">
