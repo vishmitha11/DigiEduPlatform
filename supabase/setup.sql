@@ -103,6 +103,16 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+DO $$ BEGIN
+  CREATE POLICY "Anyone can read profiles of public students" ON "Profile"
+    FOR SELECT TO anon, authenticated
+    USING (EXISTS (
+      SELECT 1 FROM "Student" s
+      JOIN "StudentPublicProfile" spp ON spp."studentId" = s.id
+      WHERE s."profileId" = "Profile".id AND spp."isPublic" = true
+    ));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
 
 -- ── Student ───────────────────────────────────────────────────────────────────
 
@@ -129,6 +139,15 @@ DO $$ BEGIN
     WITH CHECK (auth.uid()::text = "profileId");
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "Anyone can read students with a public profile" ON "Student"
+    FOR SELECT TO anon, authenticated
+    USING (EXISTS (
+      SELECT 1 FROM "StudentPublicProfile" spp
+      WHERE spp."studentId" = "Student".id AND spp."isPublic" = true
+    ));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 
 -- ── StudentQualification ──────────────────────────────────────────────────────
@@ -160,6 +179,42 @@ DO $$ BEGIN
     USING (
       "studentId" = (SELECT id FROM "Student" WHERE "profileId" = auth.uid()::text)
     );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+
+-- ── StudentPublicProfile ──────────────────────────────────────────────────────
+
+ALTER TABLE "StudentPublicProfile" ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+  CREATE POLICY "Students can read own public profile" ON "StudentPublicProfile"
+    FOR SELECT TO authenticated
+    USING ("studentId" = (SELECT id FROM "Student" WHERE "profileId" = auth.uid()::text));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "Students can insert own public profile" ON "StudentPublicProfile"
+    FOR INSERT TO authenticated
+    WITH CHECK ("studentId" = (SELECT id FROM "Student" WHERE "profileId" = auth.uid()::text));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "Students can update own public profile" ON "StudentPublicProfile"
+    FOR UPDATE TO authenticated
+    USING ("studentId" = (SELECT id FROM "Student" WHERE "profileId" = auth.uid()::text))
+    WITH CHECK ("studentId" = (SELECT id FROM "Student" WHERE "profileId" = auth.uid()::text));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "Anyone can read public student-public-profiles" ON "StudentPublicProfile"
+    FOR SELECT TO anon, authenticated
+    USING ("isPublic" = true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "Admins can read all student public profiles" ON "StudentPublicProfile"
+    FOR SELECT TO authenticated
+    USING (EXISTS (SELECT 1 FROM "Profile" p WHERE p.id = auth.uid()::text AND p.is_admin = true));
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 
@@ -299,6 +354,60 @@ DO $$ BEGIN
     );
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "Anyone can read credentials of public students" ON "Credential"
+    FOR SELECT TO anon, authenticated
+    USING (EXISTS (
+      SELECT 1 FROM "StudentPublicProfile" spp
+      WHERE spp."studentId" = "Credential"."studentId" AND spp."isPublic" = true
+    ));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+
+-- ── ResearchPaper ─────────────────────────────────────────────────────────────
+
+ALTER TABLE "ResearchPaper" ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+  CREATE POLICY "Students can read own research papers" ON "ResearchPaper"
+    FOR SELECT TO authenticated
+    USING ("studentId" = (SELECT id FROM "Student" WHERE "profileId" = auth.uid()::text));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "Students can insert own research papers" ON "ResearchPaper"
+    FOR INSERT TO authenticated
+    WITH CHECK ("studentId" = (SELECT id FROM "Student" WHERE "profileId" = auth.uid()::text));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "Students can update own research papers" ON "ResearchPaper"
+    FOR UPDATE TO authenticated
+    USING ("studentId" = (SELECT id FROM "Student" WHERE "profileId" = auth.uid()::text))
+    WITH CHECK ("studentId" = (SELECT id FROM "Student" WHERE "profileId" = auth.uid()::text));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "Students can delete own research papers" ON "ResearchPaper"
+    FOR DELETE TO authenticated
+    USING ("studentId" = (SELECT id FROM "Student" WHERE "profileId" = auth.uid()::text));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "Anyone can read research papers of public profiles" ON "ResearchPaper"
+    FOR SELECT TO anon, authenticated
+    USING (EXISTS (
+      SELECT 1 FROM "StudentPublicProfile" spp
+      WHERE spp."studentId" = "ResearchPaper"."studentId" AND spp."isPublic" = true
+    ));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "Admins can read all research papers" ON "ResearchPaper"
+    FOR SELECT TO authenticated
+    USING (EXISTS (SELECT 1 FROM "Profile" p WHERE p.id = auth.uid()::text AND p.is_admin = true));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
