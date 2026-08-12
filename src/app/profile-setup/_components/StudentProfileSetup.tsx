@@ -51,6 +51,7 @@ import {
   FlaskConical,
   Plane,
   Search,
+  Target,
   type LucideIcon,
 } from "lucide-react";
 import { createClient } from "~/lib/supabase/client";
@@ -249,6 +250,7 @@ interface FormState {
   expectedGraduationDate: string;
   academicStatus: string;
   gpa: string;
+  targetCareer: string;
   qualifications: QualificationRow[];
   interests: InterestCategoryId[];
   careerGoals: CareerGoalId[];
@@ -278,6 +280,7 @@ const DEFAULT: FormState = {
   expectedGraduationDate: "",
   academicStatus: "",
   gpa: "",
+  targetCareer: "",
   qualifications: [],
   interests: [],
   careerGoals: [],
@@ -373,6 +376,7 @@ export default function StudentProfileSetup() {
         expectedGraduationDate: (existingProfile.expectedGraduationDate ?? "").slice(0, 7),
         academicStatus: existingProfile.academicStatus ?? "",
         gpa: existingProfile.gpa ?? "",
+        targetCareer: existingProfile.targetCareer ?? "",
         qualifications: (existingProfile.qualifications ?? []).map((q) => ({
           key: crypto.randomUUID(),
           qualification: q.qualification ?? "",
@@ -435,6 +439,7 @@ export default function StudentProfileSetup() {
           expectedGraduationDate: form.expectedGraduationDate ? `${form.expectedGraduationDate}-01` : null,
           academicStatus: form.academicStatus || null,
           gpa: form.gpa || null,
+          targetCareer: form.targetCareer || null,
           updatedAt: new Date().toISOString(),
         },
         { onConflict: "profileId", ignoreDuplicates: false },
@@ -1183,6 +1188,23 @@ export default function StudentProfileSetup() {
           </div>
 
           <div>
+            <label className={labelClass}>Target Career <span className="font-normal text-ink-muted">(optional)</span></label>
+            <div className="relative">
+              <Target className={fieldIconClass} />
+              <input
+                type="text"
+                className={fieldClass(inputWithIconClass, form.targetCareer)}
+                value={form.targetCareer}
+                onChange={(e) => setForm((f) => ({ ...f, targetCareer: e.target.value }))}
+                placeholder="e.g. Software Engineer, UX Designer"
+              />
+            </div>
+            <p className="mt-1.5 text-xs text-ink-muted">
+              A specific role you're aiming for — powers your Career Map and personalized guidance.
+            </p>
+          </div>
+
+          <div>
             <div className="mb-3 flex items-center justify-between">
               <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">What are your career goals? <span className="text-red-400">*</span></p>
               <span className="text-xs font-medium text-brand">{form.careerGoals.length}/5 selected</span>
@@ -1394,6 +1416,9 @@ export default function StudentProfileSetup() {
           </ReviewSection>
 
           <ReviewSection title="Interests & Goals" onEdit={() => setStep(2)}>
+            <ReviewGrid>
+              <ReviewItem label="Target Career" value={form.targetCareer} />
+            </ReviewGrid>
             <ReviewTags label="Interests" values={interestLabels} />
             <ReviewTags label="Contribution Goals" values={contributionGoalLabels} />
             <ReviewTags label="Opportunity Interests" values={opportunityInterestLabels} />
