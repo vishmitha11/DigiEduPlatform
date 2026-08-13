@@ -1,0 +1,155 @@
+import { z } from "zod";
+import { TRPCError } from "@trpc/server";
+import {
+  createTRPCRouter,
+  employerProcedure,
+  publicProcedure,
+} from "~/server/api/trpc";
+
+const jobListingInput = z.object({
+  title: z.string().min(3, "Title must be at least 3 characters"),
+  department: z.string().optional().nullable(),
+  numberOfOpenings: z.number().int().positive().optional().nullable(),
+  description: z.string().min(20, "Please provide a role description"),
+  type: z.enum(["FULL_TIME", "PART_TIME", "INTERNSHIP", "CONTRACT", "OVERSEAS"]),
+  workModel: z.enum(["ON_SITE", "HYBRID", "REMOTE"]).optional().nullable(),
+  location: z.string().optional().nullable(),
+  experienceLevel: z.enum(["ENTRY_LEVEL", "JUNIOR", "MID_LEVEL", "SENIOR_LEVEL", "EXECUTIVE"]).optional().nullable(),
+  minimumEducation: z.enum(["HIGH_SCHOOL", "DIPLOMA", "BACHELOR", "MASTER", "PHD", "NOT_REQUIRED"]).optional().nullable(),
+  requiredQualifications: z.array(z.string()).default([]),
+  preferredFields: z.array(z.string()).default([]),
+  requirements: z.string().optional().nullable(),
+  salaryMin: z.number().positive().optional().nullable(),
+  salaryMax: z.number().positive().optional().nullable(),
+  displaySalaryPublicly: z.boolean().default(true),
+  applicationDeadline: z.string().optional().nullable(),
+  status: z.enum(["DRAFT", "PUBLISHED"]).default("DRAFT"),
+}).refine(
+  (d) => !(d.salaryMin && d.salaryMax) || d.salaryMin <= d.salaryMax,
+  { message: "Minimum salary cannot exceed maximum salary", path: ["salaryMin"] },
+).refine(
+  (d) => {
+    if (!d.applicationDeadline) return true;
+    const todayUtc = new Date();
+    todayUtc.setUTCHours(0, 0, 0, 0);
+    return new Date(d.applicationDeadline) >= todayUtc;
+  },
+  { message: "Application deadline cannot be in the past", path: ["applicationDeadline"] },
+);
+
+export const jobRouter = createTRPCRouter({
+
+  listPublic: publicProcedure
+    .input(z.object({
+      search: z.string().optional(),
+      type: z.enum(["FULL_TIME", "PART_TIME", "INTERNSHIP", "CONTRACT", "OVERSEAS"]).optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const jobs = await ctx.db.jobListing.findMany({
+        where: {
+          status: "PUBLISHED",
+          isActive: true,
+          ...(input.search && {
+            title: { contains: input.search, mode: "insensitive" },
+          }),
+          ...(input.type && { type: input.type }),
+        },
+        include: {
+          employer: { select: { companyName: true, logoUrl: true, industry: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      // Salary figures must never leave the server for listings where the
+      // employer opted out of displaying them publicly — enforce this here
+      // rather than relying on the frontend to hide already-shipped data.
+      return jobs.map((job) =>
+        job.displaySalaryPublicly ? job : { ...job, salaryMin: null, salaryMax: null },
+      );
+    }),
+
+  getMyListings: employerProcedure.query(async ({ ctx }) => {
+    return ctx.db.jobListing.findMany({
+      where: { employerId: ctx.employer.id, isActive: true },
+      orderBy: { createdAt: "desc" },
+    });
+  }),
+
+  getById: employerProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const job = await ctx.db.jobListing.findUnique({ where: { id: input.id } });
+
+      if (job?.employerId !== ctx.employer.id) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Job listing not found" });
+      }
+
+      return job;
+    }),
+
+  create: employerProcedure
+    .input(jobListingInput)
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.jobListing.create({
+        data: {
+          ...input,
+          // Prisma's DateTime value parser requires a full ISO-8601
+          // datetime (or a Date object) even for a @db.Date column — the
+          // plain "YYYY-MM-DD" string from the date input errors with
+          // "premature end of input" if passed through as-is.
+          applicationDeadline: input.applicationDeadline ? new Date(input.applicationDeadline) : null,
+          employerId: ctx.employer.id,
+          isRemote: input.workModel === "REMOTE",
+        },
+      });
+    }),
+
+  update: employerProcedure
+    .input(z.object({ id: z.string(), data: jobListingInput }))
+    .mutation(async ({ ctx, input }) => {
+      const job = await ctx.db.jobListing.findUnique({ where: { id: input.id } });
+
+      if (job?.employerId !== ctx.employer.id) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Job listing not found" });
+      }
+
+      return ctx.db.jobListing.update({
+        where: { id: input.id },
+        data: {
+          ...input.data,
+          applicationDeadline: input.data.applicationDeadline ? new Date(input.data.applicationDeadline) : null,
+          isRemote: input.data.workModel === "REMOTE",
+        },
+      });
+    }),
+
+  togglePublish: employerProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const job = await ctx.db.jobListing.findUnique({ where: { id: input.id } });
+
+      if (job?.employerId !== ctx.employer.id) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Job listing not found" });
+      }
+
+      return ctx.db.jobListing.update({
+        where: { id: input.id },
+        data: { status: job.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED" },
+      });
+    }),
+
+  delete: employerProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const job = await ctx.db.jobListing.findUnique({ where: { id: input.id } });
+
+      if (job?.employerId !== ctx.employer.id) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Job listing not found" });
+      }
+
+      return ctx.db.jobListing.update({
+        where: { id: input.id },
+        data: { isActive: false },
+      });
+    }),
+});

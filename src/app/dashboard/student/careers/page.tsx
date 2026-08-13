@@ -8,6 +8,7 @@ import {
   CheckCircle2, AlertCircle,
 } from "lucide-react";
 import { createClient } from "~/lib/supabase/client";
+import { api } from "~/trpc/react";
 import Button from "~/app/components/ui/Button";
 import EmptyState from "~/app/components/ui/EmptyState";
 
@@ -43,8 +44,6 @@ export default function CareersPage() {
   const router = useRouter();
   const supabase = createClient();
 
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [remoteFilter, setRemoteFilter] = useState(false);
@@ -55,6 +54,30 @@ export default function CareersPage() {
   const [user, setUser] = useState<any>(null);
   const [studentId, setStudentId] = useState<string | null>(null);
   const [existingApplications, setExistingApplications] = useState<Set<string>>(new Set());
+
+  // Published, active job listings — server-side filtered (status +
+  // isActive) and salary-figure-stripped where the employer opted out of
+  // public display, so this client never even receives DRAFT jobs or
+  // hidden salary data.
+  const { data: rawJobs = [], isLoading: loading } = api.job.listPublic.useQuery({});
+
+  const jobs: Job[] = rawJobs.map((j) => ({
+    id: j.id,
+    title: j.title,
+    type: j.type,
+    location: j.location,
+    isRemote: j.isRemote,
+    salaryMin: j.salaryMin ? Number(j.salaryMin) : null,
+    salaryMax: j.salaryMax ? Number(j.salaryMax) : null,
+    currency: j.currency,
+    description: j.description,
+    requirements: j.requirements,
+    requiredQualifications: j.requiredQualifications,
+    preferredFields: j.preferredFields,
+    applicationDeadline: j.applicationDeadline ? new Date(j.applicationDeadline).toISOString() : null,
+    createdAt: j.createdAt.toString(),
+    employer: j.employer,
+  }));
 
   useEffect(() => {
     const init = async () => {
@@ -78,33 +101,6 @@ export default function CareersPage() {
       }
     };
     void init();
-
-    const fetchJobs = async () => {
-      setLoading(true);
-      const { data } = await supabase
-        .from("JobListing")
-        .select(`
-          id, title, type, location, isRemote, salaryMin, salaryMax,
-          currency, description, requirements, requiredQualifications,
-          preferredFields, applicationDeadline, createdAt,
-          employer:Employer(companyName, logoUrl, industry)
-        `)
-        .eq("isActive", true)
-        .order("createdAt", { ascending: false });
-
-      if (data) {
-        setJobs(
-          data.map((j) => ({
-            ...j,
-            salaryMin: j.salaryMin ? Number(j.salaryMin) : null,
-            salaryMax: j.salaryMax ? Number(j.salaryMax) : null,
-            employer: Array.isArray(j.employer) ? j.employer[0] ?? null : j.employer,
-          })) as Job[],
-        );
-      }
-      setLoading(false);
-    };
-    void fetchJobs();
   }, []);
 
   const handleApply = async (jobId: string) => {

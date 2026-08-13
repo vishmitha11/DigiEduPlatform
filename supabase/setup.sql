@@ -913,11 +913,10 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 ALTER TABLE "JobListing" ENABLE ROW LEVEL SECURITY;
 
-DO $$ BEGIN
-  CREATE POLICY "Anyone can read active job listings" ON "JobListing"
-    FOR SELECT TO authenticated
-    USING ("isActive" = true);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DROP POLICY IF EXISTS "Anyone can read active job listings" ON "JobListing";
+CREATE POLICY "Anyone can read active job listings" ON "JobListing"
+  FOR SELECT TO authenticated
+  USING ("isActive" = true AND "status" = 'PUBLISHED');
 
 DO $$ BEGIN
   CREATE POLICY "Employers can manage own job listings" ON "JobListing"
