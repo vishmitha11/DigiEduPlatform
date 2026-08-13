@@ -518,7 +518,7 @@ model JobListing {
   requiredQualifications String[]
   preferredFields        String[]
   minimumEducation       EducationLevel?
-  applicationDeadline    DateTime?
+  applicationDeadline    DateTime?         @db.Date
   status                 JobListingStatus  @default(DRAFT)
   isActive               Boolean           @default(true)
   views                  Int               @default(0)
