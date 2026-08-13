@@ -16,8 +16,6 @@ const PAGE_SIZE = 10;
 const DEFAULT_FILTERS: CandidateFilters = {
   jobId: "",
   search: "",
-  employmentTypes: [],
-  workModels: [],
   fieldsOfStudy: [],
   verifiedOnly: false,
   hasPublishedResearch: false,
@@ -58,8 +56,6 @@ export default function CandidateSearchPage() {
     {
       jobId: filters.jobId,
       search: filters.search.trim() || undefined,
-      employmentTypes: filters.employmentTypes,
-      workModels: filters.workModels,
       fieldsOfStudy: filters.fieldsOfStudy,
       verifiedOnly: filters.verifiedOnly,
       hasPublishedResearch: filters.hasPublishedResearch,

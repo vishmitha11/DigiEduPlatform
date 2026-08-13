@@ -5,10 +5,9 @@ import { Award, BadgeCheck, Building2, Calendar, Mail, MapPin } from "lucide-rea
 import { api } from "~/trpc/react";
 import Card from "~/app/components/ui/Card";
 import Badge from "~/app/components/ui/Badge";
-import StatusPill from "~/app/components/ui/StatusPill";
 import ProgressBar from "~/app/components/ui/ProgressBar";
 import Button from "~/app/components/ui/Button";
-import { EMPLOYMENT_TYPE_LABELS, WORK_MODEL_LABELS, type CandidateResult } from "./candidateTypes";
+import type { CandidateResult } from "./candidateTypes";
 
 const AVATAR_TINTS = [
   "bg-blue-600",
@@ -71,7 +70,6 @@ export default function CandidateCard({
                 <BadgeCheck className="mr-1 inline h-3 w-3" /> Verified
               </Badge>
             )}
-            {candidate.availability && <StatusPill status={candidate.availability} />}
           </div>
 
           {/* Raw fieldOfStudy/degreeProgram as returned by the router — never
@@ -111,21 +109,8 @@ export default function CandidateCard({
             )}
           </div>
 
-          {(candidate.employmentTypePreference.length > 0 ||
-            candidate.workModelPreference.length > 0 ||
-            candidate.papersCount > 0 ||
-            candidate.credentialsCount > 0) && (
+          {(candidate.papersCount > 0 || candidate.credentialsCount > 0) && (
             <div className="mt-3 flex flex-wrap gap-1.5">
-              {candidate.employmentTypePreference.map((t) => (
-                <Badge key={t} tone="neutral">
-                  {EMPLOYMENT_TYPE_LABELS[t as keyof typeof EMPLOYMENT_TYPE_LABELS] ?? t}
-                </Badge>
-              ))}
-              {candidate.workModelPreference.map((m) => (
-                <Badge key={m} tone="info">
-                  {WORK_MODEL_LABELS[m as keyof typeof WORK_MODEL_LABELS] ?? m}
-                </Badge>
-              ))}
               {candidate.papersCount > 0 && (
                 <Badge tone="info">
                   {candidate.papersCount} paper{candidate.papersCount > 1 ? "s" : ""}

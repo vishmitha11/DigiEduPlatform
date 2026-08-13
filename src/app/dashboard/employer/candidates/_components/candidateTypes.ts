@@ -4,14 +4,9 @@
 
 import type { ProgramField } from "@prisma/client";
 
-export type EmploymentType = "FULL_TIME" | "PART_TIME" | "INTERNSHIP" | "CONTRACT" | "OVERSEAS";
-export type WorkModelType = "ON_SITE" | "HYBRID" | "REMOTE";
-
 export interface CandidateFilters {
   jobId: string;
   search: string;
-  employmentTypes: EmploymentType[];
-  workModels: WorkModelType[];
   fieldsOfStudy: ProgramField[];
   verifiedOnly: boolean;
   hasPublishedResearch: boolean;
@@ -39,9 +34,6 @@ export interface CandidateResult {
   expectedGraduationDate: Date | null;
   gpa: string | null;
   skills: string[];
-  employmentTypePreference: string[];
-  workModelPreference: string[];
-  availability: string | null;
   papersCount: number;
   credentialsCount: number;
   matchScore: number;
@@ -49,24 +41,8 @@ export interface CandidateResult {
 }
 
 export interface CandidateFacets {
-  employmentTypes: Record<string, number>;
-  workModels: Record<string, number>;
   fieldsOfStudy: { field: ProgramField; count: number }[];
 }
-
-export const EMPLOYMENT_TYPE_LABELS: Record<EmploymentType, string> = {
-  FULL_TIME: "Full Time",
-  PART_TIME: "Part Time",
-  INTERNSHIP: "Internship",
-  CONTRACT: "Contract",
-  OVERSEAS: "Overseas",
-};
-
-export const WORK_MODEL_LABELS: Record<WorkModelType, string> = {
-  ON_SITE: "On-site",
-  HYBRID: "Hybrid",
-  REMOTE: "Remote",
-};
 
 // ProgramField enum values are SCREAMING_SNAKE_CASE — turn e.g.
 // "DATA_SCIENCE" into "Data Science" for filter chip / badge labels.

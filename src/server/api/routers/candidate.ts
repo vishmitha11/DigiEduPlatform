@@ -4,14 +4,9 @@ import { ProgramField, type PrismaClient } from "@prisma/client";
 import { createTRPCRouter, employerProcedure } from "~/server/api/trpc";
 import { classifyFieldOfStudy } from "~/lib/taxonomy/studentFieldMapping";
 
-const JOB_TYPE_VALUES = ["FULL_TIME", "PART_TIME", "INTERNSHIP", "CONTRACT", "OVERSEAS"] as const;
-const WORK_MODEL_VALUES = ["ON_SITE", "HYBRID", "REMOTE"] as const;
-
 const candidateSearchInput = z.object({
   jobId: z.string().min(1),
   search: z.string().trim().max(200).optional(),
-  employmentTypes: z.array(z.enum(JOB_TYPE_VALUES)).default([]),
-  workModels: z.array(z.enum(WORK_MODEL_VALUES)).default([]),
   fieldsOfStudy: z.array(z.nativeEnum(ProgramField)).default([]),
   verifiedOnly: z.boolean().default(false),
   hasPublishedResearch: z.boolean().default(false),
@@ -41,31 +36,20 @@ async function getOwnedPublishedJob(db: PrismaClient, jobId: string, employerId:
 }
 
 // ── Match score ──────────────────────────────────────────────────────────
-// See the Architecture Plan for the exact weighting: up to 60 points for
-// keyword overlap between the job's preferredFields/requiredQualifications
-// and the candidate's fieldOfStudy/degreeProgram/skills, up to 20 for an
-// employment-type preference match, up to 20 for a work-model preference
-// match. Each component only contributes to maxScore when it's actually
-// applicable, so a job/candidate pair with no signal at all scores 0
-// instead of being penalized as 0/100.
+// Keyword overlap between the job's preferredFields/requiredQualifications
+// and the candidate's fieldOfStudy/degreeProgram/skills. A job with no
+// keywords at all scores 0 instead of being penalized as 0/100.
 function computeMatchScore(
   candidate: {
     fieldOfStudy: string | null;
     degreeProgram: string | null;
     skills: string[];
-    employmentTypePreference: string[];
-    workModelPreference: string[];
   },
   job: {
     preferredFields: string[];
     requiredQualifications: string[];
-    type: string;
-    workModel: string | null;
   },
 ): number {
-  let score = 0;
-  let maxScore = 0;
-
   const jobKeywords = Array.from(
     new Set(
       [...job.preferredFields, ...job.requiredQualifications]
@@ -74,27 +58,14 @@ function computeMatchScore(
     ),
   );
 
-  if (jobKeywords.length > 0) {
-    const candidateText = [candidate.fieldOfStudy, candidate.degreeProgram, ...candidate.skills]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-    const matchedCount = jobKeywords.filter((kw) => candidateText.includes(kw)).length;
-    score += (matchedCount / jobKeywords.length) * 60;
-    maxScore += 60;
-  }
+  if (jobKeywords.length === 0) return 0;
 
-  if (candidate.employmentTypePreference.length > 0) {
-    score += candidate.employmentTypePreference.includes(job.type) ? 20 : 0;
-    maxScore += 20;
-  }
-
-  if (job.workModel && candidate.workModelPreference.length > 0) {
-    score += candidate.workModelPreference.includes(job.workModel) ? 20 : 0;
-    maxScore += 20;
-  }
-
-  return maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
+  const candidateText = [candidate.fieldOfStudy, candidate.degreeProgram, ...candidate.skills]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  const matchedCount = jobKeywords.filter((kw) => candidateText.includes(kw)).length;
+  return Math.round((matchedCount / jobKeywords.length) * 100);
 }
 
 export const candidateRouter = createTRPCRouter({
@@ -113,9 +84,6 @@ export const candidateRouter = createTRPCRouter({
         yearOrGrade: true,
         expectedGraduationDate: true,
         gpa: true,
-        employmentTypePreference: true,
-        workModelPreference: true,
-        availability: true,
         profile: {
           select: { fullName: true, avatarUrl: true, isVerified: true },
         },
@@ -137,14 +105,10 @@ export const candidateRouter = createTRPCRouter({
           fieldOfStudy: s.fieldOfStudy,
           degreeProgram: s.degreeProgram,
           skills,
-          employmentTypePreference: s.employmentTypePreference,
-          workModelPreference: s.workModelPreference,
         },
         {
           preferredFields: job.preferredFields,
           requiredQualifications: job.requiredQualifications,
-          type: job.type,
-          workModel: job.workModel,
         },
       );
 
@@ -164,9 +128,6 @@ export const candidateRouter = createTRPCRouter({
         expectedGraduationDate: s.expectedGraduationDate,
         gpa: s.gpa,
         skills,
-        employmentTypePreference: s.employmentTypePreference,
-        workModelPreference: s.workModelPreference,
-        availability: s.availability,
         papersCount: s.researchPapers.length,
         credentialsCount: s.credentials.length,
         matchScore,
@@ -175,20 +136,6 @@ export const candidateRouter = createTRPCRouter({
 
     // ── Facets — computed from the post-visibility-gate pool, before any
     // other filter is applied ────────────────────────────────────────────
-    const employmentTypeFacets = Object.fromEntries(
-      JOB_TYPE_VALUES.map((t) => [
-        t,
-        pool.filter((c) => c.employmentTypePreference.includes(t)).length,
-      ]),
-    ) as Record<(typeof JOB_TYPE_VALUES)[number], number>;
-
-    const workModelFacets = Object.fromEntries(
-      WORK_MODEL_VALUES.map((m) => [
-        m,
-        pool.filter((c) => c.workModelPreference.includes(m)).length,
-      ]),
-    ) as Record<(typeof WORK_MODEL_VALUES)[number], number>;
-
     const fieldOfStudyCounts = new Map<ProgramField, number>();
     for (const c of pool) {
       if (!c.classifiedField) continue;
@@ -199,8 +146,6 @@ export const candidateRouter = createTRPCRouter({
       .map(([field, count]) => ({ field, count }));
 
     const facets = {
-      employmentTypes: employmentTypeFacets,
-      workModels: workModelFacets,
       fieldsOfStudy: fieldsOfStudyFacets,
     };
 
@@ -216,18 +161,6 @@ export const candidateRouter = createTRPCRouter({
           .toLowerCase();
         return haystack.includes(q);
       });
-    }
-
-    if (input.employmentTypes.length > 0) {
-      filtered = filtered.filter((c) =>
-        c.employmentTypePreference.some((t) => input.employmentTypes.includes(t)),
-      );
-    }
-
-    if (input.workModels.length > 0) {
-      filtered = filtered.filter((c) =>
-        c.workModelPreference.some((m) => input.workModels.includes(m)),
-      );
     }
 
     if (input.fieldsOfStudy.length > 0) {
@@ -314,9 +247,6 @@ export const candidateRouter = createTRPCRouter({
       expectedGraduationDate: c.expectedGraduationDate,
       gpa: c.gpa,
       skills: c.skills,
-      employmentTypePreference: c.employmentTypePreference,
-      workModelPreference: c.workModelPreference,
-      availability: c.availability,
       papersCount: c.papersCount,
       credentialsCount: c.credentialsCount,
       matchScore: c.matchScore,

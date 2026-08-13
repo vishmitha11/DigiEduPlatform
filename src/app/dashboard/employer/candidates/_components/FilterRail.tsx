@@ -7,13 +7,9 @@ import Card from "~/app/components/ui/Card";
 import Input from "~/app/components/ui/Input";
 import Select from "~/app/components/ui/Select";
 import {
-  EMPLOYMENT_TYPE_LABELS,
-  WORK_MODEL_LABELS,
   formatEnumLabel,
   type CandidateFacets,
   type CandidateFilters,
-  type EmploymentType,
-  type WorkModelType,
 } from "./candidateTypes";
 import type { ProgramField } from "@prisma/client";
 
@@ -106,22 +102,6 @@ export default function FilterRail({
   const { data: jobs = [] } = api.job.getMyListings.useQuery();
   const publishedJobs = jobs.filter((j) => j.status === "PUBLISHED");
 
-  const toggleEmploymentType = (value: EmploymentType) => {
-    onChange({
-      employmentTypes: filters.employmentTypes.includes(value)
-        ? filters.employmentTypes.filter((v) => v !== value)
-        : [...filters.employmentTypes, value],
-    });
-  };
-
-  const toggleWorkModel = (value: WorkModelType) => {
-    onChange({
-      workModels: filters.workModels.includes(value)
-        ? filters.workModels.filter((v) => v !== value)
-        : [...filters.workModels, value],
-    });
-  };
-
   const toggleField = (value: ProgramField) => {
     onChange({
       fieldsOfStudy: filters.fieldsOfStudy.includes(value)
@@ -158,34 +138,6 @@ export default function FilterRail({
             ))}
           </Select>
         </Field>
-
-        <FilterGroup title="Employment type" count={filters.employmentTypes.length}>
-          {(Object.entries(EMPLOYMENT_TYPE_LABELS) as [EmploymentType, string][]).map(
-            ([value, label]) => (
-              <CheckboxRow
-                key={value}
-                label={label}
-                meta={facets?.employmentTypes[value]}
-                checked={filters.employmentTypes.includes(value)}
-                onChange={() => toggleEmploymentType(value)}
-              />
-            ),
-          )}
-        </FilterGroup>
-
-        <FilterGroup title="Work model" count={filters.workModels.length}>
-          {(Object.entries(WORK_MODEL_LABELS) as [WorkModelType, string][]).map(
-            ([value, label]) => (
-              <CheckboxRow
-                key={value}
-                label={label}
-                meta={facets?.workModels[value]}
-                checked={filters.workModels.includes(value)}
-                onChange={() => toggleWorkModel(value)}
-              />
-            ),
-          )}
-        </FilterGroup>
 
         {facets && facets.fieldsOfStudy.length > 0 && (
           <FilterGroup title="Field of study" count={filters.fieldsOfStudy.length}>
