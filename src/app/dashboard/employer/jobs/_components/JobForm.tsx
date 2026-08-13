@@ -153,8 +153,12 @@ export default function JobForm({
     if (form.salaryMin && form.salaryMax && Number(form.salaryMin) > Number(form.salaryMax)) {
       return "Minimum salary cannot exceed maximum salary.";
     }
-    if (form.applicationDeadline && new Date(form.applicationDeadline) <= new Date()) {
-      return "Application deadline must be in the future.";
+    if (form.applicationDeadline) {
+      const todayUtc = new Date();
+      todayUtc.setUTCHours(0, 0, 0, 0);
+      if (new Date(form.applicationDeadline) < todayUtc) {
+        return "Application deadline cannot be in the past.";
+      }
     }
     return null;
   };

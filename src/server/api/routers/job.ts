@@ -28,8 +28,13 @@ const jobListingInput = z.object({
   (d) => !(d.salaryMin && d.salaryMax) || d.salaryMin <= d.salaryMax,
   { message: "Minimum salary cannot exceed maximum salary", path: ["salaryMin"] },
 ).refine(
-  (d) => !d.applicationDeadline || new Date(d.applicationDeadline) > new Date(),
-  { message: "Application deadline must be in the future", path: ["applicationDeadline"] },
+  (d) => {
+    if (!d.applicationDeadline) return true;
+    const todayUtc = new Date();
+    todayUtc.setUTCHours(0, 0, 0, 0);
+    return new Date(d.applicationDeadline) >= todayUtc;
+  },
+  { message: "Application deadline cannot be in the past", path: ["applicationDeadline"] },
 );
 
 export const jobRouter = createTRPCRouter({
