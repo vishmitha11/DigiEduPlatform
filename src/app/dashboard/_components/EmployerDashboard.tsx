@@ -138,12 +138,20 @@ export default function EmployerDashboard() {
             </p>
           </div>
           {approvalStatus === "APPROVED" && (
-            <button
-              onClick={() => router.push("/dashboard/employer/jobs/new")}
-              className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dim"
-            >
-              + Post Job
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => router.push("/dashboard/employer/candidates")}
+                className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+              >
+                Find Candidates
+              </button>
+              <button
+                onClick={() => router.push("/dashboard/employer/jobs/new")}
+                className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dim"
+              >
+                + Post Job
+              </button>
+            </div>
           )}
         </div>
 

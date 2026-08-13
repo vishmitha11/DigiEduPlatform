@@ -286,6 +286,11 @@ model Student {
   expectedGraduationDate  DateTime?
   academicStatus          String?
   gpa                     String?
+  // Candidate-search preferences (INX-65) — surfaced to employers via
+  // the candidate router; empty array / null means "no preference set".
+  employmentTypePreference JobType[]            @default([])
+  workModelPreference      WorkModel[]          @default([])
+  availability              StudentAvailability?
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   submissions           AssessmentSubmission[]
@@ -1028,6 +1033,14 @@ enum CourseResourceType {
 enum ResearchPaperStatus {
   PUBLISHED
   UNDER_REVIEW
+
+  @@schema("public")
+}
+
+enum StudentAvailability {
+  AVAILABLE
+  OPEN_TO_OFFERS
+  NOT_AVAILABLE
 
   @@schema("public")
 }
