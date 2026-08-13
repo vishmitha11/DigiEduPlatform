@@ -93,6 +93,11 @@ export const jobRouter = createTRPCRouter({
       return ctx.db.jobListing.create({
         data: {
           ...input,
+          // Prisma's DateTime value parser requires a full ISO-8601
+          // datetime (or a Date object) even for a @db.Date column — the
+          // plain "YYYY-MM-DD" string from the date input errors with
+          // "premature end of input" if passed through as-is.
+          applicationDeadline: input.applicationDeadline ? new Date(input.applicationDeadline) : null,
           employerId: ctx.employer.id,
           isRemote: input.workModel === "REMOTE",
         },
@@ -112,6 +117,7 @@ export const jobRouter = createTRPCRouter({
         where: { id: input.id },
         data: {
           ...input.data,
+          applicationDeadline: input.data.applicationDeadline ? new Date(input.data.applicationDeadline) : null,
           isRemote: input.data.workModel === "REMOTE",
         },
       });
